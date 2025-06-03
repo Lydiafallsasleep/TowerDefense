@@ -1,0 +1,39 @@
+# Unity一般忽略规则
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Mm]emoryCaptures/
+
+# 自动生成的VS/MD解决方案和项目文件
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity3D生成的.meta文件
+*.meta
+
+# Unity3D生成的.plist文件
+*.plist
+
+# 缓存目录
+/[Aa]ssets/AssetStoreTools*
+
+# 自动生成的Unity项目设置
+/ProjectSettings/ProjectVersion.txt
+/UserSettings/
