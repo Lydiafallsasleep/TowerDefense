@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
-public class SubPool : MonoBehaviour
+public class SubPool
 {
     GameObject poolObject;
 
@@ -11,12 +11,18 @@ public class SubPool : MonoBehaviour
 
     public string Name 
     { 
-        get{return poolObject.name;} 
+        get{return poolObject != null ? poolObject.name : "NullPool";} 
     }
 
     public SubPool(GameObject prefab)
     {
         this.poolObject = prefab;
+        
+        // 安全检查
+        if (prefab == null)
+        {
+            Debug.LogError("警告：SubPool 创建时传入的预制体为null");
+        }
     }
 
     public GameObject OnSpawn()
@@ -37,6 +43,15 @@ public class SubPool : MonoBehaviour
         // 如果没有找到可复用对象，则创建新的
         if (go == null)
         {
+            // 确保poolObject不为null
+            if (poolObject == null)
+            {
+                Debug.LogError("无法创建实例：预制体为null");
+                return null;
+            }
+            
+            try
+            {
             go = GameObject.Instantiate(poolObject);
             
             // 为对象添加唯一标识
@@ -45,6 +60,18 @@ public class SubPool : MonoBehaviour
             
             poolList.Add(go);
             Debug.Log($"对象池 {Name} 创建了新实例 {go.name}，当前池大小：{poolList.Count}");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"实例化对象时出错：{e.Message}");
+                return null;
+            }
+        }
+
+        if (go == null)
+        {
+            Debug.LogError("无法创建实例或复用现有实例");
+            return null;
         }
 
         // 将对象的实例ID与此池关联
@@ -61,7 +88,14 @@ public class SubPool : MonoBehaviour
         }
         
         // 发送OnSpawn消息
+        try
+        {
         go.SendMessage("OnSpawn", SendMessageOptions.DontRequireReceiver);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"调用OnSpawn时出错：{e.Message}");
+        }
 
         return go;
     }
@@ -99,6 +133,33 @@ public class SubPool : MonoBehaviour
             catch (System.Exception e)
             {
                 Debug.LogError($"回收对象{go.name}时出现异常: {e.Message}");
+                // 即使出错也尝试禁用对象
+                try { go.SetActive(false); } catch {}
+            }
+        }
+        else
+        {
+            // 对象不在此池中，但我们仍然尝试禁用它
+            Debug.LogWarning($"对象 {go.name} 不在对象池 {Name} 中，但仍尝试禁用");
+            try
+            {
+                go.SetActive(false);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"禁用对象时出错：{e.Message}");
+            }
+            
+            // 添加到池中，以便将来可能的重用
+            try
+            {
+                poolList.Add(go);
+                instanceTracker.Add(instanceId, go);
+                Debug.Log($"将外部对象 {go.name} 添加到池 {Name} 中");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"添加对象到池中时出错：{e.Message}");
             }
         }
     }
@@ -109,8 +170,15 @@ public class SubPool : MonoBehaviour
         {
             if (go != null && go.activeSelf)
             {
+                try
+            {
                 go.SendMessage("OnDespawn", SendMessageOptions.DontRequireReceiver);
                 go.SetActive(false);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"回收对象{go.name}时出现异常: {e.Message}");
+                }
             }
     }
     }

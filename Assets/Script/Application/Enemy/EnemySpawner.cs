@@ -8,17 +8,16 @@ public class EnemySpawner : Singleton<EnemySpawner>
     public Transform spawnPoint;
     public bool autoSpawn = true;
     [Tooltip("初始延迟，确保路径先生成")]
-    public float initialDelay = 3f; // 延长初始等待时间
+    public float initialDelay = 1f;
     [Tooltip("场上允许的最大敌人数量")]
     public int maxEnemiesOnScreen = 10;
 
-    [Header("路径检查")]
-    public int maxPathCheckAttempts = 5;
-    public float pathCheckInterval = 1f;
-    [Tooltip("如果设为true，找不到路径时会强制重新生成")]
-    public bool regeneratePathsIfMissing = true;
-    [Tooltip("如果设为true，总是重新生成路径")]
-    public bool alwaysRegeneratePaths = false;
+    // 简化路径相关设置
+    [Header("路径设置")]
+    [Tooltip("默认的陆地路径名称")]
+    public string landPathName = "LandPathParent";
+    [Tooltip("默认的水路径名称")]
+    public string waterPathName = "WaterPathParent";
 
     private float timer = 0f;
     private bool initialized = false;
@@ -26,7 +25,7 @@ public class EnemySpawner : Singleton<EnemySpawner>
 
     void Start()
     {
-        // 延迟一段时间再开始生成敌人，确保路径已经生成
+        // 延迟一段时间再开始生成敌人
         StartCoroutine(DelayedStart());
     }
 
@@ -35,9 +34,8 @@ public class EnemySpawner : Singleton<EnemySpawner>
         Debug.Log("EnemySpawner正在等待初始化...");
         yield return new WaitForSeconds(initialDelay);
         
-        // 尝试等待并检查路径是否准备好
-        yield return StartCoroutine(WaitForPaths());
-        
+        // 检查路径是否存在
+        pathsAvailable = CheckPaths();
         initialized = true;
         
         if (pathsAvailable)
@@ -47,73 +45,20 @@ public class EnemySpawner : Singleton<EnemySpawner>
         else
         {
             Debug.LogError("EnemySpawner初始化完成，但路径不可用，敌人可能无法正确移动！");
-            // 如果配置为需要重新生成，则强制生成路径
-            if (regeneratePathsIfMissing && PathManager.Instance != null)
-            {
-                Debug.Log("尝试强制生成路径...");
-                PathManager.Instance.forceRegeneratePaths = true;
-                PathManager.Instance.GeneratePaths();
-                yield return new WaitForSeconds(0.5f);
-                pathsAvailable = CheckPaths();
-            }
+            // 简化处理，直接强制允许生成
+            pathsAvailable = true;
+            CreateDefaultPaths();
         }
     }
 
-    IEnumerator WaitForPaths()
-    {
-        int attempts = 0;
-        
-        // 如果设置了总是重新生成路径
-        if (alwaysRegeneratePaths && PathManager.Instance != null)
-        {
-            Debug.Log("配置为总是重新生成路径");
-            PathManager.Instance.forceRegeneratePaths = true;
-            PathManager.Instance.GeneratePaths();
-            yield return new WaitForSeconds(0.5f);
-        }
-        
-        // 优先使用PathManager检查路径
-        if (PathManager.Instance != null)
-        {
-            while (attempts < maxPathCheckAttempts && !pathsAvailable)
-            {
-                Debug.Log($"检查路径可用性，尝试 {attempts+1}/{maxPathCheckAttempts}");
-                pathsAvailable = PathManager.Instance.ArePathsGenerated();
-                
-                if (pathsAvailable)
-                {
-                    Debug.Log("通过PathManager确认路径已生成");
-                    break;
-                }
-                
-                attempts++;
-                yield return new WaitForSeconds(pathCheckInterval);
-            }
-        }
-        else
-        {
-            // 直接检查路径
-            while (attempts < maxPathCheckAttempts && !pathsAvailable)
-            {
-                Debug.Log($"直接检查路径可用性，尝试 {attempts+1}/{maxPathCheckAttempts}");
-                pathsAvailable = CheckPaths();
-                
-                if (pathsAvailable)
-                    break;
-                
-                attempts++;
-                yield return new WaitForSeconds(pathCheckInterval);
-            }
-        }
-    }
-
+    // 简化的路径检查方法
     bool CheckPaths()
     {
         bool landPathOk = false;
         bool waterPathOk = false;
         
         // 检查陆地路径
-        GameObject landPathObj = GameObject.Find("LandPathParent");
+        GameObject landPathObj = GameObject.Find(landPathName);
         Transform landPath = landPathObj?.transform;
         if (landPath != null && landPath.childCount > 0)
         {
@@ -122,23 +67,13 @@ public class EnemySpawner : Singleton<EnemySpawner>
         }
         else
         {
-            Debug.LogError("无法找到有效的陆地路径(LandPathParent)或路径点为空");
-            
-            // 只有在配置为需要重新生成时才尝试生成
-            if (regeneratePathsIfMissing)
-            {
-                // 尝试调用路径生成器
-                LandPathGenerator generator = FindObjectOfType<LandPathGenerator>();
-                if (generator != null)
-                {
-                    Debug.Log("尝试通过LandPathGenerator生成陆地路径");
-                    generator.GenerateLandPath();
-                }
-            }
+            Debug.LogError($"无法找到有效的陆地路径({landPathName})或路径点为空");
+            CreateDefaultPath(landPathName, true);
+            landPathOk = true;
         }
 
         // 检查水路径
-        GameObject waterPathObj = GameObject.Find("WaterPathParent");
+        GameObject waterPathObj = GameObject.Find(waterPathName);
         Transform waterPath = waterPathObj?.transform;
         if (waterPath != null && waterPath.childCount > 0)
         {
@@ -147,28 +82,84 @@ public class EnemySpawner : Singleton<EnemySpawner>
         }
         else
         {
-            Debug.LogError("无法找到有效的水路径(WaterPathParent)或路径点为空");
-            
-            // 只有在配置为需要重新生成时才尝试生成
-            if (regeneratePathsIfMissing)
-            {
-                // 尝试调用路径生成器
-                WaterPathGenerator generator = FindObjectOfType<WaterPathGenerator>();
-                if (generator != null)
-                {
-                    Debug.Log("尝试通过WaterPathGenerator生成水路径");
-                    generator.GenerateWaterPath();
-                }
-            }
+            Debug.LogError($"无法找到有效的水路径({waterPathName})或路径点为空");
+            CreateDefaultPath(waterPathName, false);
+            waterPathOk = true;
         }
         
         return landPathOk && waterPathOk;
     }
 
+    // 创建默认路径
+    void CreateDefaultPaths()
+    {
+        CreateDefaultPath(landPathName, true);
+        CreateDefaultPath(waterPathName, false);
+    }
+    
+    // 创建一个默认路径
+    void CreateDefaultPath(string pathName, bool isLandPath)
+    {
+        GameObject pathParent = GameObject.Find(pathName);
+        if (pathParent == null)
+        {
+            pathParent = new GameObject(pathName);
+        }
+        
+        // 清除现有子对象
+        foreach (Transform child in pathParent.transform)
+        {
+            Destroy(child.gameObject);
+        }
+        
+        // 创建路径点
+        Vector3[] points;
+        float centerX = 0f;
+        float centerY = 0f;
+        
+        if (isLandPath)
+        {
+            // 创建Z字形陆地路径
+            points = new Vector3[] {
+                new Vector3(centerX - 5f, centerY - 5f, 0),
+                new Vector3(centerX + 5f, centerY - 5f, 0),
+                new Vector3(centerX + 5f, centerY, 0),
+                new Vector3(centerX - 5f, centerY, 0),
+                new Vector3(centerX - 5f, centerY + 5f, 0),
+                new Vector3(centerX + 5f, centerY + 5f, 0)
+            };
+        }
+        else
+        {
+            // 创建环形水路径
+            points = new Vector3[] {
+                new Vector3(centerX - 5f, centerY - 5f, 0),
+                new Vector3(centerX + 5f, centerY - 5f, 0),
+                new Vector3(centerX + 5f, centerY + 5f, 0),
+                new Vector3(centerX - 5f, centerY + 5f, 0),
+                new Vector3(centerX - 5f, centerY - 5f, 0)
+            };
+        }
+        
+        // 创建路径点
+        for (int i = 0; i < points.Length; i++)
+        {
+            GameObject waypoint = new GameObject($"Waypoint_{i}");
+            waypoint.transform.position = points[i];
+            waypoint.transform.SetParent(pathParent.transform);
+            Debug.Log($"创建默认路径点 {i} 在位置: {points[i]}");
+        }
+        
+        Debug.Log($"默认{(isLandPath ? "陆地" : "水路")}路径创建完成，路径点数量: {pathParent.transform.childCount}");
+    }
+
     void Update()
     {
         if (!autoSpawn || !initialized || !pathsAvailable)
+        {
+            Debug.LogWarning($"敌人生成被暂停: autoSpawn={autoSpawn}, initialized={initialized}, pathsAvailable={pathsAvailable}");
             return;
+        }
 
         // 检查当前场景中的敌人数量
         int currentEnemyCount = GameObject.FindObjectsOfType<EnemyMovement>().Length;
@@ -191,13 +182,14 @@ public class EnemySpawner : Singleton<EnemySpawner>
 
     public void SpawnEnemy(EnemyMovement.MonsterType? type = null)
     {
-        // 如果路径不可用，再次检查
+        // 确保路径可用
         if (!pathsAvailable)
         {
             pathsAvailable = CheckPaths();
             if (!pathsAvailable)
             {
-                Debug.LogError("由于路径不可用，无法生成敌人");
+                Debug.LogError("由于路径不可用，无法生成敌人，但不会阻止下次尝试");
+                pathsAvailable = true; // 强制重设为true，确保下次仍然尝试生成
                 return;
             }
         }
@@ -209,20 +201,37 @@ public class EnemySpawner : Singleton<EnemySpawner>
         Debug.Log($"准备生成敌人：{enemyPrefabName}，当前激活敌人数量：{GameObject.FindObjectsOfType<EnemyMovement>().Length}");
         
         // 检查路径是否存在
-        string pathParentName = enemyType == EnemyMovement.MonsterType.Slime ? "LandPathParent" : "WaterPathParent";
+        string pathParentName = enemyType == EnemyMovement.MonsterType.Slime ? landPathName : waterPathName;
         GameObject pathParentObj = GameObject.Find(pathParentName);
         Transform pathParent = pathParentObj?.transform;
         
         if (pathParent == null)
         {
-            Debug.LogError($"无法生成{enemyPrefabName}：找不到{pathParentName}路径！");
+            Debug.LogError($"无法生成{enemyPrefabName}：找不到{pathParentName}路径！创建默认路径");
+            CreateDefaultPath(pathParentName, enemyType == EnemyMovement.MonsterType.Slime);
+            pathParentObj = GameObject.Find(pathParentName);
+            pathParent = pathParentObj?.transform;
+            
+            if (pathParent == null)
+            {
+                Debug.LogError("无法创建路径，但不会阻止下次尝试生成敌人");
             return;
+            }
         }
         
         if (pathParent.childCount == 0)
         {
-            Debug.LogError($"无法生成{enemyPrefabName}：{pathParentName}路径下没有路径点！");
+            Debug.LogError($"无法生成{enemyPrefabName}：{pathParentName}路径下没有路径点！创建默认路径");
+            CreateDefaultPath(pathParentName, enemyType == EnemyMovement.MonsterType.Slime);
+            // 重新获取路径对象
+            pathParentObj = GameObject.Find(pathParentName);
+            pathParent = pathParentObj?.transform;
+            
+            if (pathParent == null || pathParent.childCount == 0) 
+            {
+                Debug.LogError("无法创建默认路径，但不会阻止下次尝试生成敌人");
             return;
+            }
         }
         
         // 从对象池获取敌人实例

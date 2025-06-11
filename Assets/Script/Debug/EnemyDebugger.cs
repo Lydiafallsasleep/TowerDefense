@@ -10,14 +10,26 @@ public class EnemyDebugger : MonoBehaviour
     public Color landPathColor = Color.green;
     public Color waterPathColor = Color.blue;
     
+    [Header("连续生成")]
+    public bool enableContinuousSpawning = true;
+    [Tooltip("连续生成启用后的敌人生成间隔(秒)")]
+    public float spawnInterval = 2f;
+    
     [Header("路径设置")]
-    [Tooltip("强制重新生成路径，即使已存在路径")]
-    public bool forceRegeneratePaths = false;
+    [Tooltip("是否在每次测试时生成新路径")]
+    public bool createNewPathsOnTest = false;
+    [Tooltip("陆地路径名称")]
+    public string landPathName = "LandPathParent";
+    [Tooltip("水路径名称")]
+    public string waterPathName = "WaterPathParent";
     
     void Start()
     {
         if (spawnOnStart)
             Invoke("SpawnTestEnemies", 2f);
+            
+        // 启动连续生成检查
+        InvokeRepeating("EnsureContinuousSpawning", 5f, 3f);
     }
     
     void Update()
@@ -34,33 +46,16 @@ public class EnemyDebugger : MonoBehaviour
     {
         Debug.Log("正在生成测试敌人...");
         
-        // 检查路径是否需要重新生成
-        if (PathManager.Instance != null)
+        // 如果需要，创建新路径
+        if (createNewPathsOnTest)
         {
-            // 应用调试设置
-            PathManager.Instance.forceRegeneratePaths = forceRegeneratePaths;
-            
-            // 检查路径是否已存在
-            bool pathsExist = PathManager.Instance.ArePathsGenerated();
-            
-            if (!pathsExist || forceRegeneratePaths)
-            {
-                Debug.Log("路径不存在或强制重新生成");
-                PathManager.Instance.GeneratePaths();
-            }
-            else
-            {
-                Debug.Log("路径已存在，无需重新生成");
-            }
-        }
-        else
-        {
-            Debug.LogError("找不到PathManager实例");
+            CreateDefaultPath(landPathName, true);
+            CreateDefaultPath(waterPathName, false);
         }
         
         // 检查路径是否存在
-        LogPathStatus("LandPathParent");
-        LogPathStatus("WaterPathParent");
+        LogPathStatus(landPathName);
+        LogPathStatus(waterPathName);
         
         // 尝试生成敌人
         if (EnemySpawner.Instance != null)
@@ -91,6 +86,62 @@ public class EnemyDebugger : MonoBehaviour
         }
     }
     
+    // 创建一个默认路径
+    void CreateDefaultPath(string pathName, bool isLandPath)
+    {
+        GameObject pathParent = GameObject.Find(pathName);
+        if (pathParent == null)
+        {
+            pathParent = new GameObject(pathName);
+        }
+        
+        // 清除现有子对象
+        foreach (Transform child in pathParent.transform)
+        {
+            Destroy(child.gameObject);
+        }
+        
+        // 创建路径点
+        Vector3[] points;
+        float centerX = 0f;
+        float centerY = 0f;
+        
+        if (isLandPath)
+        {
+            // 创建Z字形陆地路径
+            points = new Vector3[] {
+                new Vector3(centerX - 5f, centerY - 5f, 0),
+                new Vector3(centerX + 5f, centerY - 5f, 0),
+                new Vector3(centerX + 5f, centerY, 0),
+                new Vector3(centerX - 5f, centerY, 0),
+                new Vector3(centerX - 5f, centerY + 5f, 0),
+                new Vector3(centerX + 5f, centerY + 5f, 0)
+            };
+        }
+        else
+        {
+            // 创建环形水路径
+            points = new Vector3[] {
+                new Vector3(centerX - 5f, centerY - 5f, 0),
+                new Vector3(centerX + 5f, centerY - 5f, 0),
+                new Vector3(centerX + 5f, centerY + 5f, 0),
+                new Vector3(centerX - 5f, centerY + 5f, 0),
+                new Vector3(centerX - 5f, centerY - 5f, 0)
+            };
+        }
+        
+        // 创建路径点
+        for (int i = 0; i < points.Length; i++)
+        {
+            GameObject waypoint = new GameObject($"Waypoint_{i}");
+            waypoint.transform.position = points[i];
+            waypoint.transform.SetParent(pathParent.transform);
+            Debug.Log($"创建默认路径点 {i} 在位置: {points[i]}");
+        }
+        
+        Debug.Log($"默认{(isLandPath ? "陆地" : "水路")}路径创建完成，路径点数量: {pathParent.transform.childCount}");
+    }
+    
     void LogPathStatus(string pathName)
     {
         GameObject pathObj = GameObject.Find(pathName);
@@ -116,8 +167,8 @@ public class EnemyDebugger : MonoBehaviour
     {
         if (!showPathGizmos) return;
         
-        DrawPath("LandPathParent", landPathColor);
-        DrawPath("WaterPathParent", waterPathColor);
+        DrawPath(landPathName, landPathColor);
+        DrawPath(waterPathName, waterPathColor);
     }
     
     void DrawPath(string pathName, Color color)
@@ -139,6 +190,59 @@ public class EnemyDebugger : MonoBehaviour
                 Transform nextPoint = pathObj.transform.GetChild(i + 1);
                 Gizmos.DrawLine(point.position, nextPoint.position);
             }
+        }
+    }
+    
+    // 确保连续生成功能正常工作
+    void EnsureContinuousSpawning()
+    {
+        if (!enableContinuousSpawning) return;
+        
+        if (EnemySpawner.Instance != null)
+        {
+            // 强制设置连续生成参数
+            EnemySpawner.Instance.autoSpawn = true;
+            EnemySpawner.Instance.spawnInterval = spawnInterval;
+            
+            // 确保初始化和路径可用标志正确设置
+            var spawnerField = EnemySpawner.Instance.GetType().GetField("initialized", 
+                System.Reflection.BindingFlags.Instance | 
+                System.Reflection.BindingFlags.NonPublic);
+                
+            var pathsField = EnemySpawner.Instance.GetType().GetField("pathsAvailable", 
+                System.Reflection.BindingFlags.Instance | 
+                System.Reflection.BindingFlags.NonPublic);
+                
+            if (spawnerField != null)
+                spawnerField.SetValue(EnemySpawner.Instance, true);
+                
+            if (pathsField != null)
+                pathsField.SetValue(EnemySpawner.Instance, true);
+            
+            Debug.Log("已强制设置EnemySpawner为持续生成模式");
+            
+            // 检查路径
+            CheckAndFixPaths();
+        }
+    }
+    
+    // 检查并修复路径
+    void CheckAndFixPaths()
+    {
+        // 检查陆地路径
+        GameObject landPath = GameObject.Find(landPathName);
+        if (landPath == null || landPath.transform.childCount == 0)
+        {
+            Debug.Log("发现陆地路径丢失，尝试修复");
+            CreateDefaultPath(landPathName, true);
+        }
+        
+        // 检查水路径
+        GameObject waterPath = GameObject.Find(waterPathName);
+        if (waterPath == null || waterPath.transform.childCount == 0)
+        {
+            Debug.Log("发现水路径丢失，尝试修复");
+            CreateDefaultPath(waterPathName, false);
         }
     }
 } 

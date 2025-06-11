@@ -175,7 +175,7 @@ public class MagicProjectile : Projectile
     // 减速效果
     private bool hasSlowEffect = false;
     private float slowFactor = 1f;
-    private float slowDuration = 0f;
+    public new float slowDuration = 0f;
     
     // 连锁闪电效果
     private bool hasChainLightning = false;
@@ -198,7 +198,7 @@ public class MagicProjectile : Projectile
         chainDamage = damagePerChain;
     }
     
-    // 重写伤害方法，添加特殊效果
+    // 正确重写基类方法
     protected override void Damage(Transform enemy)
     {
         // 基础伤害
@@ -214,7 +214,7 @@ public class MagicProjectile : Projectile
             EnemyMovement movement = enemy.GetComponent<EnemyMovement>();
             if (movement != null)
             {
-                StartCoroutine(SlowEnemy(movement));
+                movement.ApplySlow(slowFactor, slowDuration);
             }
         }
         
@@ -222,24 +222,6 @@ public class MagicProjectile : Projectile
         if (hasChainLightning && chainCount > 0)
         {
             StartCoroutine(ChainLightning(enemy, chainCount));
-        }
-    }
-    
-    IEnumerator SlowEnemy(EnemyMovement enemy)
-    {
-        // 保存原始速度
-        float originalSpeed = enemy.moveSpeed;
-        
-        // 减速
-        enemy.moveSpeed *= slowFactor;
-        
-        // 等待持续时间
-        yield return new WaitForSeconds(slowDuration);
-        
-        // 恢复速度（如果敌人还活着）
-        if (enemy != null && enemy.gameObject.activeSelf)
-        {
-            enemy.moveSpeed = originalSpeed;
         }
     }
     

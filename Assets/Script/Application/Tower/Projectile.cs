@@ -2,12 +2,14 @@ using UnityEngine;
 
 public class Projectile : MonoBehaviour
 {
-    public float speed = 10f;
     public float damage = 10f;
-    public float explosionRadius = 0f; // 0表示单体伤害，>0表示范围伤害
-    public GameObject impactEffect;
+    public float speed = 20f;
+    public float explosionRadius = 0f; // 爆炸半径，0表示无爆炸
+    public bool hasSlowEffect = false; // 减速效果
+    public float slowFactor = 0.5f;   // 减速因子
+    public float slowDuration = 1f;   // 减速持续时间
     
-    private Transform target;
+    protected Transform target;
 
     public void Seek(Transform _target)
     {
@@ -22,53 +24,42 @@ public class Projectile : MonoBehaviour
             return;
         }
 
-        // 向目标移动
-        Vector3 direction = target.position - transform.position;
+        // 移动逻辑
+        Vector3 dir = target.position - transform.position;
         float distanceThisFrame = speed * Time.deltaTime;
 
-        // 检查是否足够接近以造成伤害
-        if (direction.magnitude <= distanceThisFrame)
+        if (dir.magnitude <= distanceThisFrame)
         {
             HitTarget();
             return;
         }
 
-        // 移动弹药
-        transform.Translate(direction.normalized * distanceThisFrame, Space.World);
+        transform.Translate(dir.normalized * distanceThisFrame, Space.World);
         
-        // 让弹药朝向目标
-        transform.LookAt(target);
-        transform.Rotate(new Vector3(0, -90, 0)); // 调整精灵朝向
+        // 2D游戏中使用LookAt2D
+        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
     }
-
-    void HitTarget()
+    
+    // 改为protected virtual方法
+    protected virtual void HitTarget()
     {
-        // 创建击中特效
-        if (impactEffect != null)
-        {
-            GameObject effectInstance = Instantiate(impactEffect, transform.position, transform.rotation);
-            Destroy(effectInstance, 2f); // 2秒后销毁特效
-        }
-
-        // 处理范围伤害
         if (explosionRadius > 0f)
         {
-            Explode();
+            Explode(); // 爆炸伤害
         }
         else
         {
-            // 单体伤害
-            Damage(target);
+            Damage(target); // 单体伤害
         }
 
         Destroy(gameObject);
     }
 
-    void Explode()
+    // 改为protected virtual方法
+    protected virtual void Explode()
     {
-        // 获取范围内的所有碰撞体
         Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
-        
         foreach (Collider2D collider in colliders)
         {
             if (collider.CompareTag("Enemy"))
@@ -78,16 +69,26 @@ public class Projectile : MonoBehaviour
         }
     }
 
+    // 修改为protected virtual方法，以便子类可以重写
     protected virtual void Damage(Transform enemy)
     {
-        EnemyHealth health = enemy.GetComponent<EnemyHealth>();
-        if (health != null)
+        EnemyHealth enemyHealth = enemy.GetComponent<EnemyHealth>();
+        if (enemyHealth != null)
         {
-            health.TakeDamage(damage);
-        }
+            enemyHealth.TakeDamage(damage);
     }
 
-    // 在场景视图中绘制爆炸范围
+        // 应用减速效果
+        if (hasSlowEffect)
+        {
+            EnemyMovement movement = enemy.GetComponent<EnemyMovement>();
+            if (movement != null)
+            {
+                movement.ApplySlow(slowFactor, slowDuration);
+            }
+        }
+    }
+    
     void OnDrawGizmosSelected()
     {
         if (explosionRadius > 0)

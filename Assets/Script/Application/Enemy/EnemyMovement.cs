@@ -32,6 +32,9 @@ public class EnemyMovement : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         currentDirection = Vector2.right; // 初始方向
+        
+        // 保存原始速度，用于减速效果恢复
+        originalMoveSpeed = moveSpeed;
     }
 
     void OnEnable()
@@ -48,7 +51,7 @@ public class EnemyMovement : MonoBehaviour
     {
         int retryCount = 0;
         
-        // 先等待一小段时间，确保路径管理器有机会初始化
+        // 先等待一小段时间，确保路径有机会初始化
         yield return new WaitForSeconds(0.2f);
         
         // 尝试初始化路径，最多重试maxInitRetries次
@@ -67,8 +70,10 @@ public class EnemyMovement : MonoBehaviour
         
         if (!pathInitialized)
         {
-            Debug.LogError($"路径初始化失败，已重试{retryCount}次。敌人将被禁用。");
-            gameObject.SetActive(false); // 多次重试失败后禁用敌人
+            Debug.LogError($"路径初始化失败，已重试{retryCount}次。创建临时路径。");
+            // 创建临时路径并尝试使用
+            string parentName = monsterType == MonsterType.Slime ? "LandPathParent" : "WaterPathParent";
+            CreateAndUseTemporaryPath(parentName);
         }
     }
 
@@ -81,55 +86,19 @@ public class EnemyMovement : MonoBehaviour
         GameObject pathParentObj = GameObject.Find(parentName);
         Transform pathParent = pathParentObj?.transform;
         
-        // 如果没有找到路径父对象，强制PathManager生成
+        // 如果没有找到路径父对象，创建临时路径
         if (pathParent == null)
         {
-            Debug.LogError($"[{gameObject.name}] 未找到路径父对象: {parentName}，尝试通过PathManager创建");
-            PathManager pathManager = PathManager.Instance;
-            if (pathManager != null)
-            {
-                pathManager.GeneratePaths();
-                // 重新查找
-                pathParentObj = GameObject.Find(parentName);
-                pathParent = pathParentObj?.transform;
-            }
-            
-            // 如果还是没找到，创建临时路径
-            if (pathParent == null)
-            {
+            Debug.LogError($"[{gameObject.name}] 未找到路径父对象: {parentName}，创建临时路径");
                 return CreateAndUseTemporaryPath(parentName);
-            }
         }
         
         // 路径父对象存在，检查子对象
         if (pathParent.childCount == 0)
         {
-            // 有父对象但没有子对象，尝试重新生成
-            Debug.LogError($"[{gameObject.name}] 路径对象{parentName}存在，但没有子对象！尝试等待完全初始化...");
-            
-            // 为了调试，检查Unity是否能看到该对象和它的Transform组件
-            if (pathParentObj != null && pathParent != null)
-            {
-                Debug.Log($"路径对象可用: {pathParentObj.name}, 激活状态: {pathParentObj.activeSelf}, " +
-                         $"位置: {pathParent.position}, 子对象数量: {pathParent.childCount}");
-            }
-            
-            // 尝试通过PathManager重新生成
-            PathManager pathManager = PathManager.Instance;
-            if (pathManager != null)
-            {
-                Debug.Log($"通过PathManager重新生成{parentName}");
-                pathManager.FixEmptyPath(parentName);
-                pathParentObj = GameObject.Find(parentName);
-                pathParent = pathParentObj?.transform;
-            }
-            
-            // 如果父对象存在但子对象仍为0，则直接创建临时路径
-            if (pathParent == null || pathParent.childCount == 0)
-            {
-                Debug.LogError($"无法修复空路径，创建临时路径");
+            // 有父对象但没有子对象，直接创建临时路径
+            Debug.LogError($"[{gameObject.name}] 路径对象{parentName}存在，但没有子对象！创建临时路径");
                 return CreateAndUseTemporaryPath(parentName);
-            }
         }
         
         Debug.Log($"成功找到路径父对象：{parentName}，子对象数量：{pathParent.childCount}");
@@ -362,8 +331,12 @@ public class EnemyMovement : MonoBehaviour
 
     void ReachedEnd()
     {
-        // 通知游戏管理器减少生命值（这部分代码被注释了）
-        //GameManager.Instance.PlayerTakeDamage(1);
+        // 通知游戏管理器减少生命值
+        if (GameManager.Instance != null)
+        {
+            // 敌人到达终点，扣除玩家生命值
+            GameManager.Instance.PlayerTakeDamage(1);
+        }
 
         Debug.Log($"{gameObject.name} 到达了路径终点，准备回收，当前激活敌人数量：{GameObject.FindObjectsOfType<EnemyMovement>().Length}");
 
@@ -436,5 +409,28 @@ public class EnemyMovement : MonoBehaviour
             return 0f;
             
         return (float)currentWaypointIndex / (waypoints.Length - 1);
+    }
+
+    // 添加减速效果方法
+    public void ApplySlow(float slowFactor, float duration)
+    {
+        // 减速效果
+        moveSpeed = originalMoveSpeed * slowFactor;
+        
+        // 取消可能存在的减速恢复协程
+        CancelInvoke("ResetMoveSpeed");
+        
+        // 设置定时器，延迟后恢复速度
+        Invoke("ResetMoveSpeed", duration);
+        
+        // 可选：添加视觉效果表示敌人被减速
+        spriteRenderer.color = new Color(0.5f, 0.5f, 1f);
+    }
+
+    // 恢复正常速度
+    private void ResetMoveSpeed()
+    {
+        moveSpeed = originalMoveSpeed;
+        spriteRenderer.color = Color.white; // 恢复正常颜色
     }
 }
