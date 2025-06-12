@@ -18,6 +18,8 @@ public class EnemyMovement : MonoBehaviour
     public bool useSmoothMovement = true;
     [Tooltip("转向速度")]
     public float rotationSpeed = 5f;
+    [Tooltip("到达终点时对玩家造成的伤害")]
+    public int damageToPlayer = 1;
 
     private Transform[] waypoints;
     private int currentWaypointIndex = 0;
@@ -26,6 +28,7 @@ public class EnemyMovement : MonoBehaviour
     private bool pathInitialized = false;
     private Vector2 currentDirection;
     private Vector2 targetDirection;
+    private PlayerHealth playerHealth;
 
     void Awake()
     {
@@ -35,6 +38,13 @@ public class EnemyMovement : MonoBehaviour
         
         // 保存原始速度，用于减速效果恢复
         originalMoveSpeed = moveSpeed;
+        
+        // 查找PlayerHealth组件
+        playerHealth = FindObjectOfType<PlayerHealth>();
+        if (playerHealth == null)
+        {
+            Debug.LogWarning("[EnemyMovement] 未找到PlayerHealth组件，将使用GameManager进行伤害处理");
+        }
     }
 
     void OnEnable()
@@ -200,34 +210,47 @@ public class EnemyMovement : MonoBehaviour
         GameObject existingPath = GameObject.Find(pathName);
         if (existingPath != null)
         {
-            Debug.Log($"销毁已存在的{pathName}");
-            Destroy(existingPath);
+            Debug.Log($"找到现有路径对象: {pathName}，将清除其子对象");
+            foreach (Transform child in existingPath.transform)
+            {
+                Destroy(child.gameObject);
+            }
+            
+            // 创建新的路径点
+            Vector3[] points = GetDefaultPathPoints(monsterType);
+            for (int i = 0; i < points.Length; i++)
+            {
+                GameObject waypoint = new GameObject($"Waypoint_{i}");
+                waypoint.transform.position = points[i];
+                waypoint.transform.SetParent(existingPath.transform);
+            }
+            
+            return existingPath.transform;
         }
-        
-        // 创建新的路径父对象
-        GameObject pathParent = new GameObject(pathName);
-        
-        // 根据怪物类型创建不同的测试路径
-        Vector3[] points = GetDefaultPathPoints(monsterType);
-        
-        // 创建路径点
-        for (int i = 0; i < points.Length; i++)
+        else
         {
-            GameObject waypoint = new GameObject($"Waypoint_{i}");
-            waypoint.transform.position = points[i];
-            waypoint.transform.SetParent(pathParent.transform);
+            // 创建新的路径父对象
+            GameObject pathParent = new GameObject(pathName);
+            
+            // 创建路径点
+            Vector3[] points = GetDefaultPathPoints(monsterType);
+            for (int i = 0; i < points.Length; i++)
+            {
+                GameObject waypoint = new GameObject($"Waypoint_{i}");
+                waypoint.transform.position = points[i];
+                waypoint.transform.SetParent(pathParent.transform);
+            }
+            
+            return pathParent.transform;
         }
-        
-        Debug.Log($"临时路径已创建，路径点数量: {pathParent.transform.childCount}");
-        return pathParent.transform;
     }
 
-    // 根据怪物类型获取默认路径点
+    // 获取默认路径点
     private Vector3[] GetDefaultPathPoints(MonsterType type)
     {
         Vector3[] points;
-        float startX = transform.position.x - 5f;
-        float startY = transform.position.y - 5f;
+        float startX = transform.position.x;
+        float startY = transform.position.y;
         
         if (type == MonsterType.Slime)
         {
@@ -331,14 +354,24 @@ public class EnemyMovement : MonoBehaviour
 
     void ReachedEnd()
     {
-        // 通知游戏管理器减少生命值
-        if (GameManager.Instance != null)
+        Debug.Log($"{gameObject.name} 到达了路径终点，准备扣除玩家生命值");
+        
+        // 优先使用PlayerHealth组件扣除生命值
+        if (playerHealth != null)
         {
-            // 敌人到达终点，扣除玩家生命值
-            GameManager.Instance.PlayerTakeDamage(1);
+            Debug.Log($"[EnemyMovement] 通过PlayerHealth扣除玩家{damageToPlayer}点生命值");
+            playerHealth.TakeDamage(damageToPlayer);
         }
-
-        Debug.Log($"{gameObject.name} 到达了路径终点，准备回收，当前激活敌人数量：{GameObject.FindObjectsOfType<EnemyMovement>().Length}");
+        // 如果没有找到PlayerHealth组件，则通过GameManager扣除生命值
+        else if (GameManager.Instance != null)
+        {
+            Debug.Log($"[EnemyMovement] 通过GameManager扣除玩家{damageToPlayer}点生命值");
+            GameManager.Instance.PlayerTakeDamage(damageToPlayer);
+        }
+        else
+        {
+            Debug.LogError("[EnemyMovement] 无法扣除玩家生命值：未找到PlayerHealth或GameManager组件");
+        }
 
         // 安全回收敌人对象
         try

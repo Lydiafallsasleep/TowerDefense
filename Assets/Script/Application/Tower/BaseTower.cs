@@ -200,6 +200,33 @@ public abstract class BaseTower : MonoBehaviour
         {
             totalCost += upgradeCost * i;
         }
-        return Mathf.RoundToInt(totalCost * 0.7f); // 返回70%的投资
+        return Mathf.FloorToInt(totalCost * 0.7f); // 返回70%的成本
+    }
+
+    // 重置塔的状态
+    public virtual void ResetState()
+    {
+        Debug.Log($"[{towerName}] 重置塔状态");
+        
+        // 重置目标
+        target = null;
+        
+        // 重置攻击冷却
+        fireCountdown = 0f;
+        
+        // 重置等级（如果需要）
+        // 如果需要保留当前等级，则注释掉以下代码
+        if (level > 1)
+        {
+            level = 1;
+            damage = damage - damageIncreasePerLevel * (level - 1);
+            range = range - rangeIncreasePerLevel * (level - 1);
+            fireRate = fireRate - fireRateIncreasePerLevel * (level - 1);
+            UpdateVisuals();
+        }
+        
+        // 重新开始寻找目标
+        CancelInvoke("UpdateTarget");
+        InvokeRepeating("UpdateTarget", 0f, 0.5f);
     }
 } 

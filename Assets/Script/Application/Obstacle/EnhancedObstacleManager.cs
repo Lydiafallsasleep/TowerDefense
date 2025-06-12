@@ -313,7 +313,7 @@ public class EnhancedObstacleManager : MonoBehaviour
         {
             hasEnoughGold = CoinManager.Instance.HasEnoughCoins(clearCost);
             if (!hasEnoughGold)
-            {
+        {
                 Debug.LogWarning($"[EnhancedObstacleManager] 金币不足，需要{clearCost}金币来清除障碍物，当前：{CoinManager.Instance.CurrentCoins}");
             return false;
         }
@@ -325,8 +325,8 @@ public class EnhancedObstacleManager : MonoBehaviour
         else
         {
             TowerManager towerManager = TowerManager.Instance;
-            if (towerManager != null)
-            {
+        if (towerManager != null)
+        {
                 if (towerManager.currentGold < clearCost)
                 {
                     Debug.LogWarning($"[EnhancedObstacleManager] 金币不足，需要{clearCost}金币来清除障碍物，当前：{towerManager.currentGold}");
@@ -336,7 +336,7 @@ public class EnhancedObstacleManager : MonoBehaviour
                 // 扣除金币
             towerManager.currentGold -= clearCost;
             towerManager.UpdateGoldDisplay();
-            }
+        }
         }
         
         // 如果存在障碍物组，清除整个组
@@ -410,21 +410,21 @@ public class EnhancedObstacleManager : MonoBehaviour
         // 如果没有组或组为空，只清除单个位置
         else
         {
-            // 清除所有图层中的障碍物
-            foreach (var tilemap in obstacleTilemaps)
+        // 清除所有图层中的障碍物
+        foreach (var tilemap in obstacleTilemaps)
+        {
+            if (tilemap != null && tilemap.GetTile(position) != null)
             {
-                if (tilemap != null && tilemap.GetTile(position) != null)
-                {
-                    tilemap.SetTile(position, null);
-                }
+                tilemap.SetTile(position, null);
             }
-            
-            // 记录已清除的位置
-            clearedObstacles.Add(position);
-            
-            // 播放清除特效
-            PlayClearEffect(position, type);
-            
+        }
+        
+        // 记录已清除的位置
+        clearedObstacles.Add(position);
+        
+        // 播放清除特效
+        PlayClearEffect(position, type);
+        
             Debug.Log($"已清除位置 {position} 的障碍物，类型: {type}, 花费: {clearCost}金币");
         }
         

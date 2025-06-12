@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
 /// 塔防UI管理器，负责处理塔防相关界面
@@ -17,15 +18,21 @@ public class TowerDefenseUI : MonoBehaviour
     
     [Header("资源显示")]
     public Text goldText;
+    public TextMeshProUGUI goldTMP;
     public Text waveText;
+    public TextMeshProUGUI waveTMP;
     public Text livesText;
+    public TextMeshProUGUI livesTMP;
     
     [Header("游戏控制")]
     public Button playPauseButton;
     public Button speedUpButton;
     public Text speedText;
+    public TextMeshProUGUI speedTMP;
     
     private TowerManager towerManager;
+    private GameManager gameManager;
+    private PlayerHealth playerHealth;
     private bool isGamePaused = false;
     private int gameSpeed = 1;
     
@@ -33,6 +40,30 @@ public class TowerDefenseUI : MonoBehaviour
     {
         // 获取塔管理器引用
         towerManager = TowerManager.Instance;
+        
+        // 获取游戏管理器引用
+        gameManager = GameManager.Instance;
+        
+        // 获取玩家生命值组件
+        playerHealth = FindObjectOfType<PlayerHealth>();
+        
+        // 如果找到了PlayerHealth组件，连接到生命值变化事件
+        if (playerHealth != null)
+        {
+            playerHealth.OnLivesChanged += OnPlayerLivesChanged;
+            
+            // 如果livesText在Inspector中已经设置，则传递给PlayerHealth
+            if (livesText != null)
+            {
+                playerHealth.livesText = livesText;
+            }
+            
+            // 如果livesTMP在Inspector中已经设置，则传递给PlayerHealth
+            if (livesTMP != null)
+            {
+                playerHealth.livesTMP = livesTMP;
+            }
+        }
         
         // 将UI引用设置到塔管理器
         if (towerManager != null)
@@ -52,23 +83,104 @@ public class TowerDefenseUI : MonoBehaviour
         UpdateResourceDisplay();
     }
     
+    void OnDestroy()
+    {
+        // 取消订阅事件
+        if (playerHealth != null)
+        {
+            playerHealth.OnLivesChanged -= OnPlayerLivesChanged;
+        }
+    }
+    
+    // 处理玩家生命值变化事件
+    private void OnPlayerLivesChanged(int currentLives, int maxLives)
+    {
+        if (livesText != null)
+        {
+            livesText.text = $"生命: {currentLives}/{maxLives}";
+        }
+        
+        if (livesTMP != null)
+        {
+            livesTMP.text = $"生命: {currentLives}/{maxLives}";
+        }
+    }
+    
     // 更新资源显示
     public void UpdateResourceDisplay()
     {
-        if (towerManager != null && goldText != null)
+        // 更新金币显示
+        if (towerManager != null)
         {
-            goldText.text = $"金币: {towerManager.currentGold}";
+            if (goldText != null)
+            {
+                goldText.text = $"金币: {towerManager.currentGold}";
+            }
+            
+            if (goldTMP != null)
+            {
+                goldTMP.text = $"金币: {towerManager.currentGold}";
+            }
         }
         
-        // 可以从GameManager获取波次和生命信息
+        // 可以从GameManager获取波次信息
         if (waveText != null)
         {
             waveText.text = $"波次: 1/10";
         }
         
-        if (livesText != null)
+        if (waveTMP != null)
         {
-            livesText.text = $"生命: 20";
+            waveTMP.text = $"波次: 1/10";
+        }
+        
+        // 更新生命值显示
+        if (livesText != null || livesTMP != null)
+        {
+            // 如果有PlayerHealth组件，从它获取生命值
+            if (playerHealth != null)
+            {
+                int currentLives = playerHealth.GetCurrentLives();
+                int maxLives = playerHealth.GetMaxLives();
+                
+                if (livesText != null)
+                {
+                    livesText.text = $"生命: {currentLives}/{maxLives}";
+                }
+                
+                if (livesTMP != null)
+                {
+                    livesTMP.text = $"生命: {currentLives}/{maxLives}";
+                }
+            }
+            // 否则从GameManager获取
+            else if (gameManager != null)
+            {
+                int currentLives = gameManager.GetCurrentLives();
+                int maxLives = gameManager.maxLives;
+                
+                if (livesText != null)
+                {
+                    livesText.text = $"生命: {currentLives}/{maxLives}";
+                }
+                
+                if (livesTMP != null)
+                {
+                    livesTMP.text = $"生命: {currentLives}/{maxLives}";
+                }
+            }
+            else
+            {
+                if (livesText != null)
+                {
+                    livesText.text = $"生命: 10";
+                }
+                
+                if (livesTMP != null)
+                {
+                    livesTMP.text = $"生命: 10";
+                }
+            }
         }
     }
     
@@ -145,17 +257,35 @@ public class TowerDefenseUI : MonoBehaviour
         if (isGamePaused)
         {
             Time.timeScale = 0f;
+            string pauseText = "继续";
+            
             if (playPauseButton != null && playPauseButton.GetComponentInChildren<Text>() != null)
             {
-                playPauseButton.GetComponentInChildren<Text>().text = "继续";
+                playPauseButton.GetComponentInChildren<Text>().text = pauseText;
+            }
+            
+            // 如果有TextMeshPro组件，也更新它
+            TextMeshProUGUI tmpText = playPauseButton?.GetComponentInChildren<TextMeshProUGUI>();
+            if (tmpText != null)
+            {
+                tmpText.text = pauseText;
             }
         }
         else
         {
             Time.timeScale = gameSpeed;
+            string playText = "暂停";
+            
             if (playPauseButton != null && playPauseButton.GetComponentInChildren<Text>() != null)
             {
-                playPauseButton.GetComponentInChildren<Text>().text = "暂停";
+                playPauseButton.GetComponentInChildren<Text>().text = playText;
+            }
+            
+            // 如果有TextMeshPro组件，也更新它
+            TextMeshProUGUI tmpText = playPauseButton?.GetComponentInChildren<TextMeshProUGUI>();
+            if (tmpText != null)
+            {
+                tmpText.text = playText;
             }
         }
     }
@@ -173,9 +303,16 @@ public class TowerDefenseUI : MonoBehaviour
         Time.timeScale = gameSpeed;
         
         // 更新UI显示
+        string speedStr = $"{gameSpeed}x";
+        
         if (speedText != null)
         {
-            speedText.text = $"{gameSpeed}x";
+            speedText.text = speedStr;
+        }
+        
+        if (speedTMP != null)
+        {
+            speedTMP.text = speedStr;
         }
     }
     
