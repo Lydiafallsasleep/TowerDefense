@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 865842828843767332}
   - component: {fileID: 5351621771702916009}
   - component: {fileID: 2164636178919722161}
+  - component: {fileID: 5836529127679938766}
   m_Layer: 6
   m_HasEditorInfo: 1
   m_Name: Slime
@@ -31,7 +32,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2900598940435218768}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.0051055383, y: -0.99771625, z: 0.05052747, w: -0.04453354}
+  m_LocalRotation: {x: 0.005106901, y: -0.9977165, z: 0.05052357, w: -0.04453305}
   m_LocalPosition: {x: 411, y: 664, z: 918}
   m_LocalScale: {x: 36.402195, y: 36.402195, z: 36.402195}
   m_ConstrainProportionsScale: 0
@@ -157,11 +158,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   monsterType: 0
   moveSpeed: 80
+  originalMoveSpeed: 2
   waypointThreshold: 5
   maxInitRetries: 3
   retryInterval: 0.5
   useSmoothMovement: 1
   rotationSpeed: 10
+  damageToPlayer: 1
 --- !u!50 &2164636178919722161
 Rigidbody2D:
   serializedVersion: 4
@@ -189,3 +192,25 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
+--- !u!114 &5836529127679938766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2900598940435218768}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe24137db643a484f8d34b4b99aa609a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  baseHealth: 8
+  currentHealth: 0
+  healthBarPrefab: {fileID: 0}
+  healthBarOffset: {x: 0, y: 0.7, z: 0}
+  healthBarScale: 1
+  hitEffectPrefab: {fileID: 0}
+  deathEffectPrefab: {fileID: 0}
+  hitEffectDuration: 0.2
+  eliteColor: {r: 1, g: 0.5, b: 0, a: 1}
+  eliteScale: 1.2

@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 1444159211325499482}
   - component: {fileID: 3703020657725133497}
   - component: {fileID: 8255441665316005508}
+  - component: {fileID: 8934226086962757017}
   m_Layer: 0
   m_HasEditorInfo: 1
   m_Name: Fish
@@ -31,7 +32,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 648085338894630404}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.99999964, z: -0, w: -0.0009235053}
+  m_LocalRotation: {x: -0, y: -0.9999996, z: 0, w: -0.000924845}
   m_LocalPosition: {x: 267, y: 557, z: 0}
   m_LocalScale: {x: 36.434235, y: 36.434235, z: 36.434235}
   m_ConstrainProportionsScale: 0
@@ -142,11 +143,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   monsterType: 1
   moveSpeed: 30
+  originalMoveSpeed: 2
   waypointThreshold: 1
   maxInitRetries: 3
   retryInterval: 0.5
   useSmoothMovement: 1
   rotationSpeed: 10
+  damageToPlayer: 1
 --- !u!114 &3703020657725133497
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -189,3 +192,25 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
+--- !u!114 &8934226086962757017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 648085338894630404}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe24137db643a484f8d34b4b99aa609a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  baseHealth: 5
+  currentHealth: 0
+  healthBarPrefab: {fileID: 0}
+  healthBarOffset: {x: 0, y: 0.7, z: 0}
+  healthBarScale: 1
+  hitEffectPrefab: {fileID: 0}
+  deathEffectPrefab: {fileID: 0}
+  hitEffectDuration: 0.2
+  eliteColor: {r: 1, g: 0.5, b: 0, a: 1}
+  eliteScale: 1.2

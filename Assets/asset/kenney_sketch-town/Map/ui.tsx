@@ -1,277 +1,265 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.11.2" name="ui" tilewidth="32" tileheight="32" tilecount="91" columns="0">
+<tileset version="1.10" tiledversion="1.11.2" name="UI" tilewidth="190" tileheight="100" tilecount="87" columns="0">
  <grid orientation="orthogonal" width="1" height="1"/>
- <tile id="0">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0000.png" width="32" height="32"/>
+ <tile id="267">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/arrowBeige_left.png" width="22" height="21"/>
  </tile>
- <tile id="1">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0001.png" width="32" height="32"/>
+ <tile id="268">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/arrowBeige_right.png" width="22" height="21"/>
  </tile>
- <tile id="2">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0002.png" width="32" height="32"/>
+ <tile id="269">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/arrowBlue_left.png" width="22" height="21"/>
  </tile>
- <tile id="3">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0003.png" width="32" height="32"/>
+ <tile id="270">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/arrowBlue_right.png" width="22" height="21"/>
  </tile>
- <tile id="4">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0004.png" width="32" height="32"/>
+ <tile id="271">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/arrowBrown_left.png" width="22" height="21"/>
  </tile>
- <tile id="5">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0005.png" width="32" height="32"/>
+ <tile id="272">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/arrowBrown_right.png" width="22" height="21"/>
  </tile>
- <tile id="6">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0006.png" width="32" height="32"/>
+ <tile id="273">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/arrowSilver_left.png" width="22" height="21"/>
  </tile>
- <tile id="7">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0007.png" width="32" height="32"/>
+ <tile id="274">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/arrowSilver_right.png" width="22" height="21"/>
  </tile>
- <tile id="8">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0008.png" width="32" height="32"/>
+ <tile id="275">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barBack_horizontalLeft.png" width="9" height="18"/>
  </tile>
- <tile id="9">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0009.png" width="32" height="32"/>
+ <tile id="276">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barBack_horizontalMid.png" width="18" height="18"/>
  </tile>
- <tile id="10">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0010.png" width="32" height="32"/>
+ <tile id="277">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barBack_horizontalRight.png" width="9" height="18"/>
  </tile>
- <tile id="11">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0011.png" width="32" height="32"/>
+ <tile id="278">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barBack_verticalBottom.png" width="18" height="9"/>
  </tile>
- <tile id="12">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0012.png" width="32" height="32"/>
+ <tile id="279">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barBack_verticalMid.png" width="18" height="18"/>
  </tile>
- <tile id="13">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0013.png" width="32" height="32"/>
+ <tile id="280">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barBack_verticalTop.png" width="18" height="9"/>
  </tile>
- <tile id="14">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0014.png" width="32" height="32"/>
+ <tile id="281">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barBlue_horizontalBlue.png" width="18" height="18"/>
  </tile>
- <tile id="15">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0015.png" width="32" height="32"/>
+ <tile id="282">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barBlue_horizontalLeft.png" width="9" height="18"/>
  </tile>
- <tile id="16">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0016.png" width="32" height="32"/>
+ <tile id="283">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barBlue_horizontalRight.png" width="9" height="18"/>
  </tile>
- <tile id="17">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0017.png" width="32" height="32"/>
+ <tile id="284">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barBlue_verticalBottom.png" width="18" height="9"/>
  </tile>
- <tile id="18">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0018.png" width="32" height="32"/>
+ <tile id="285">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barBlue_verticalMid.png" width="18" height="18"/>
  </tile>
- <tile id="19">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0019.png" width="32" height="32"/>
+ <tile id="286">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barBlue_verticalTop.png" width="18" height="9"/>
  </tile>
- <tile id="20">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0020.png" width="32" height="32"/>
+ <tile id="287">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barGreen_horizontalLeft.png" width="9" height="18"/>
  </tile>
- <tile id="21">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0021.png" width="32" height="32"/>
+ <tile id="288">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barGreen_horizontalMid.png" width="18" height="18"/>
  </tile>
- <tile id="22">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0022.png" width="32" height="32"/>
+ <tile id="289">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barGreen_horizontalRight.png" width="9" height="18"/>
  </tile>
- <tile id="23">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0023.png" width="32" height="32"/>
+ <tile id="290">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barGreen_verticalBottom.png" width="18" height="9"/>
  </tile>
- <tile id="24">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0024.png" width="32" height="32"/>
+ <tile id="291">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barGreen_verticalMid.png" width="18" height="18"/>
  </tile>
- <tile id="25">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0025.png" width="32" height="32"/>
+ <tile id="292">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barGreen_verticalTop.png" width="18" height="9"/>
  </tile>
- <tile id="26">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0026.png" width="32" height="32"/>
+ <tile id="293">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barRed_horizontalLeft.png" width="9" height="18"/>
  </tile>
- <tile id="27">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0027.png" width="32" height="32"/>
+ <tile id="294">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barRed_horizontalMid.png" width="18" height="18"/>
  </tile>
- <tile id="28">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0028.png" width="32" height="32"/>
+ <tile id="295">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barRed_horizontalRight.png" width="9" height="18"/>
  </tile>
- <tile id="29">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0029.png" width="32" height="32"/>
+ <tile id="296">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barRed_verticalBottom.png" width="18" height="9"/>
  </tile>
- <tile id="30">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0030.png" width="32" height="32"/>
+ <tile id="297">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barRed_verticalMid.png" width="18" height="18"/>
  </tile>
- <tile id="31">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0031.png" width="32" height="32"/>
+ <tile id="298">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barRed_verticalTop.png" width="18" height="9"/>
  </tile>
- <tile id="32">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0032.png" width="32" height="32"/>
+ <tile id="299">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barYellow_horizontalLeft.png" width="9" height="18"/>
  </tile>
- <tile id="33">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0033.png" width="32" height="32"/>
+ <tile id="300">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barYellow_horizontalMid.png" width="18" height="18"/>
  </tile>
- <tile id="34">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0034.png" width="32" height="32"/>
+ <tile id="301">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barYellow_horizontalRight.png" width="9" height="18"/>
  </tile>
- <tile id="35">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0035.png" width="32" height="32"/>
+ <tile id="302">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barYellow_verticalBottom.png" width="18" height="9"/>
  </tile>
- <tile id="36">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0036.png" width="32" height="32"/>
+ <tile id="303">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barYellow_verticalMid.png" width="18" height="18"/>
  </tile>
- <tile id="37">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0037.png" width="32" height="32"/>
+ <tile id="304">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/barYellow_verticalTop.png" width="18" height="9"/>
  </tile>
- <tile id="38">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0038.png" width="32" height="32"/>
+ <tile id="305">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonLong_beige.png" width="190" height="49"/>
  </tile>
- <tile id="39">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0039.png" width="32" height="32"/>
+ <tile id="306">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonLong_beige_pressed.png" width="190" height="45"/>
  </tile>
- <tile id="40">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0040.png" width="32" height="32"/>
+ <tile id="307">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonLong_blue.png" width="190" height="49"/>
  </tile>
- <tile id="41">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0041.png" width="32" height="32"/>
+ <tile id="308">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonLong_blue_pressed.png" width="190" height="45"/>
  </tile>
- <tile id="42">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0042.png" width="32" height="32"/>
+ <tile id="309">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonLong_brown.png" width="190" height="49"/>
  </tile>
- <tile id="43">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0043.png" width="32" height="32"/>
+ <tile id="310">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonLong_brown_pressed.png" width="190" height="45"/>
  </tile>
- <tile id="44">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0044.png" width="32" height="32"/>
+ <tile id="311">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonLong_grey.png" width="190" height="49"/>
  </tile>
- <tile id="45">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0045.png" width="32" height="32"/>
+ <tile id="312">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonLong_grey_pressed.png" width="190" height="45"/>
  </tile>
- <tile id="46">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0046.png" width="32" height="32"/>
+ <tile id="313">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonRound_beige.png" width="35" height="38"/>
  </tile>
- <tile id="47">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0047.png" width="32" height="32"/>
+ <tile id="314">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonRound_blue.png" width="35" height="38"/>
  </tile>
- <tile id="48">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0048.png" width="32" height="32"/>
+ <tile id="315">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonRound_brown.png" width="35" height="38"/>
  </tile>
- <tile id="49">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0049.png" width="32" height="32"/>
+ <tile id="316">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonRound_grey.png" width="35" height="38"/>
  </tile>
- <tile id="50">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0050.png" width="32" height="32"/>
+ <tile id="317">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonSquare_beige.png" width="45" height="49"/>
  </tile>
- <tile id="51">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0051.png" width="32" height="32"/>
+ <tile id="318">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonSquare_beige_pressed.png" width="45" height="45"/>
  </tile>
- <tile id="52">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0052.png" width="32" height="32"/>
+ <tile id="319">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonSquare_blue.png" width="45" height="49"/>
  </tile>
- <tile id="53">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0053.png" width="32" height="32"/>
+ <tile id="320">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonSquare_blue_pressed.png" width="45" height="45"/>
  </tile>
- <tile id="54">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0054.png" width="32" height="32"/>
+ <tile id="321">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonSquare_brown.png" width="45" height="49"/>
  </tile>
- <tile id="55">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0055.png" width="32" height="32"/>
+ <tile id="322">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonSquare_brown_pressed.png" width="45" height="45"/>
  </tile>
- <tile id="56">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0056.png" width="32" height="32"/>
+ <tile id="323">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonSquare_grey.png" width="45" height="49"/>
  </tile>
- <tile id="57">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0057.png" width="32" height="32"/>
+ <tile id="324">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/buttonSquare_grey_pressed.png" width="45" height="45"/>
  </tile>
- <tile id="58">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0058.png" width="32" height="32"/>
+ <tile id="325">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/cursorGauntlet_blue.png" width="30" height="30"/>
  </tile>
- <tile id="59">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0059.png" width="32" height="32"/>
+ <tile id="326">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/cursorGauntlet_bronze.png" width="30" height="30"/>
  </tile>
- <tile id="60">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0060.png" width="32" height="32"/>
+ <tile id="327">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/cursorGauntlet_grey.png" width="30" height="30"/>
  </tile>
- <tile id="61">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0061.png" width="32" height="32"/>
+ <tile id="328">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/cursorHand_beige.png" width="27" height="28"/>
  </tile>
- <tile id="62">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0062.png" width="32" height="32"/>
+ <tile id="329">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/cursorHand_blue.png" width="27" height="28"/>
  </tile>
- <tile id="63">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0063.png" width="32" height="32"/>
+ <tile id="330">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/cursorHand_grey.png" width="27" height="28"/>
  </tile>
- <tile id="64">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0064.png" width="32" height="32"/>
+ <tile id="331">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/cursorSword_bronze.png" width="34" height="37"/>
  </tile>
- <tile id="65">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0065.png" width="32" height="32"/>
+ <tile id="332">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/cursorSword_gold.png" width="34" height="37"/>
  </tile>
- <tile id="66">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0066.png" width="32" height="32"/>
+ <tile id="333">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/cursorSword_silver.png" width="34" height="37"/>
  </tile>
- <tile id="67">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0067.png" width="32" height="32"/>
+ <tile id="334">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/iconCheck_beige.png" width="16" height="15"/>
  </tile>
- <tile id="68">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0068.png" width="32" height="32"/>
+ <tile id="335">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/iconCheck_blue.png" width="16" height="15"/>
  </tile>
- <tile id="69">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0069.png" width="32" height="32"/>
+ <tile id="336">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/iconCheck_bronze.png" width="16" height="15"/>
  </tile>
- <tile id="70">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0070.png" width="32" height="32"/>
+ <tile id="337">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/iconCheck_grey.png" width="16" height="15"/>
  </tile>
- <tile id="71">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0071.png" width="32" height="32"/>
+ <tile id="338">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/iconCircle_beige.png" width="17" height="17"/>
  </tile>
- <tile id="72">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0072.png" width="32" height="32"/>
+ <tile id="339">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/iconCircle_blue.png" width="17" height="17"/>
  </tile>
- <tile id="73">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0073.png" width="32" height="32"/>
+ <tile id="340">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/iconCircle_brown.png" width="17" height="17"/>
  </tile>
- <tile id="74">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0074.png" width="32" height="32"/>
+ <tile id="341">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/iconCircle_grey.png" width="17" height="17"/>
  </tile>
- <tile id="75">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0075.png" width="32" height="32"/>
+ <tile id="342">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/iconCross_beige.png" width="16" height="15"/>
  </tile>
- <tile id="76">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0076.png" width="32" height="32"/>
+ <tile id="343">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/iconCross_blue.png" width="16" height="15"/>
  </tile>
- <tile id="77">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0077.png" width="32" height="32"/>
+ <tile id="344">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/iconCross_brown.png" width="16" height="15"/>
  </tile>
- <tile id="78">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0078.png" width="32" height="32"/>
+ <tile id="345">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/iconCross_grey.png" width="16" height="15"/>
  </tile>
- <tile id="79">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0079.png" width="32" height="32"/>
+ <tile id="346">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/panel_beige.png" width="100" height="100"/>
  </tile>
- <tile id="80">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0080.png" width="32" height="32"/>
+ <tile id="347">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/panel_beigeLight.png" width="100" height="100"/>
  </tile>
- <tile id="81">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0081.png" width="32" height="32"/>
+ <tile id="348">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/panel_blue.png" width="100" height="100"/>
  </tile>
- <tile id="82">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0082.png" width="32" height="32"/>
+ <tile id="349">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/panel_brown.png" width="100" height="100"/>
  </tile>
- <tile id="83">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0083.png" width="32" height="32"/>
+ <tile id="350">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/panelInset_beige.png" width="93" height="94"/>
  </tile>
- <tile id="84">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0084.png" width="32" height="32"/>
+ <tile id="351">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/panelInset_beigeLight.png" width="93" height="94"/>
  </tile>
- <tile id="85">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0085.png" width="32" height="32"/>
+ <tile id="352">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/panelInset_blue.png" width="93" height="94"/>
  </tile>
- <tile id="86">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0086.png" width="32" height="32"/>
- </tile>
- <tile id="87">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0087.png" width="32" height="32"/>
- </tile>
- <tile id="88">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0088.png" width="32" height="32"/>
- </tile>
- <tile id="89">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0089.png" width="32" height="32"/>
- </tile>
- <tile id="90">
-  <image source="../../../../../../../1-作业/game programming/asset/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0090.png" width="32" height="32"/>
+ <tile id="353">
+  <image source="../../kenney_ui-pack-rpg-expansion/PNG/panelInset_brown.png" width="93" height="94"/>
  </tile>
 </tileset>
