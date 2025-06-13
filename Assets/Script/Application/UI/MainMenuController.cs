@@ -4,39 +4,39 @@ using TMPro;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// 主菜单控制器，管理主菜单界面的功能
+/// Main menu controller, manages main menu interface functionality
 /// </summary>
 public class MainMenuController : MonoBehaviour
 {
-    [Header("UI元素")]
-    public Button startGameButton; // 开始游戏按钮
-    public Button settingsButton; // 设置按钮
-    public Button quitButton; // 退出游戏按钮
-    public TextMeshProUGUI highScoreText; // 最高分显示
-    public GameObject settingsPanel; // 设置面板
+    [Header("UI Elements")]
+    public Button startGameButton; // Start game button
+    public Button settingsButton; // Settings button
+    public Button quitButton; // Quit game button
+    public TextMeshProUGUI highScoreText; // High score display
+    public GameObject settingsPanel; // Settings panel
     
-    [Header("游戏场景")]
-    public string gameSceneName = "GameScene"; // 游戏场景名称
+    [Header("Game Scenes")]
+    public string gameSceneName = "GameScene"; // Game scene name
     
-    [Header("音效")]
-    public AudioClip buttonClickSound; // 按钮点击音效
-    public AudioClip backgroundMusic; // 背景音乐
+    [Header("Sound Effects")]
+    public AudioClip buttonClickSound; // Button click sound
+    public AudioClip backgroundMusic; // Background music
     
-    [Header("存档设置")]
-    public string highScoreKey = "HighScore"; // 最高分存档键名
+    [Header("Save Settings")]
+    public string highScoreKey = "HighScore"; // High score save key name
     
     private AudioSource audioSource;
     
     void Start()
     {
-        // 获取音频源
+        // Get audio source
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
         {
             audioSource = gameObject.AddComponent<AudioSource>();
         }
         
-        // 播放背景音乐
+        // Play background music
         if (backgroundMusic != null && audioSource != null)
         {
             audioSource.clip = backgroundMusic;
@@ -44,7 +44,7 @@ public class MainMenuController : MonoBehaviour
             audioSource.Play();
         }
         
-        // 设置按钮点击事件
+        // Set button click events
         if (startGameButton != null)
         {
             startGameButton.onClick.AddListener(StartGame);
@@ -60,30 +60,30 @@ public class MainMenuController : MonoBehaviour
             quitButton.onClick.AddListener(QuitGame);
         }
         
-        // 隐藏设置面板
+        // Hide settings panel
         if (settingsPanel != null)
         {
             settingsPanel.SetActive(false);
         }
         
-        // 显示最高分
+        // Display high score
         UpdateHighScoreDisplay();
     }
     
     /// <summary>
-    /// 更新最高分显示
+    /// Update high score display
     /// </summary>
     private void UpdateHighScoreDisplay()
     {
         if (highScoreText != null)
         {
             int highScore = PlayerPrefs.GetInt(highScoreKey, 0);
-            highScoreText.text = $"最高分数: {highScore}";
+            highScoreText.text = $"High Score: {highScore}";
         }
     }
     
     /// <summary>
-    /// 开始游戏
+    /// Start game
     /// </summary>
     public void StartGame()
     {
@@ -95,23 +95,23 @@ public class MainMenuController : MonoBehaviour
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"[MainMenuController] 无法加载游戏场景: {e.Message}");
-            Debug.LogWarning("[MainMenuController] 请确保游戏场景已添加到构建设置中，或者修改场景名称");
+            Debug.LogError($"[MainMenuController] Cannot load game scene: {e.Message}");
+            Debug.LogWarning("[MainMenuController] Please ensure the game scene is added to build settings, or modify the scene name");
             
-            // 尝试加载索引为1的场景（通常是游戏场景）
+            // Try to load scene at index 1 (usually the game scene)
             try
             {
                 SceneManager.LoadScene(1);
             }
             catch
             {
-                Debug.LogError("[MainMenuController] 无法加载索引为1的场景，请检查构建设置");
+                Debug.LogError("[MainMenuController] Cannot load scene at index 1, please check build settings");
             }
         }
     }
     
     /// <summary>
-    /// 切换设置面板
+    /// Toggle settings panel
     /// </summary>
     public void ToggleSettings()
     {
@@ -124,13 +124,13 @@ public class MainMenuController : MonoBehaviour
     }
     
     /// <summary>
-    /// 退出游戏
+    /// Quit game
     /// </summary>
     public void QuitGame()
     {
         PlayButtonSound();
         
-        Debug.Log("退出游戏");
+        Debug.Log("Quitting game");
         
         #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
@@ -140,7 +140,7 @@ public class MainMenuController : MonoBehaviour
     }
     
     /// <summary>
-    /// 重置最高分
+    /// Reset high score
     /// </summary>
     public void ResetHighScore()
     {
@@ -151,11 +151,11 @@ public class MainMenuController : MonoBehaviour
         
         UpdateHighScoreDisplay();
         
-        Debug.Log("[MainMenuController] 最高分已重置");
+        Debug.Log("[MainMenuController] High score has been reset");
     }
     
     /// <summary>
-    /// 播放按钮音效
+    /// Play button sound
     /// </summary>
     private void PlayButtonSound()
     {

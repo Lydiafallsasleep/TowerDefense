@@ -3,127 +3,118 @@ using UnityEngine.UI;
 
 public class CoinSystemInstaller : MonoBehaviour
 {
-    [Header("预制体设置")]
-    [SerializeField] private bool createUIIfMissing = true;
-    [SerializeField] private bool createCoinManagerIfMissing = true;
-    [SerializeField] private bool createSaveSystemIfMissing = true;
-    [SerializeField] private bool createDebuggerIfMissing = true;
+    [Header("Prefab Settings")]
+    public GameObject coinManagerPrefab;
+    public GameObject coinSaveSystemPrefab;
+    public GameObject coinDebuggerPrefab;
+    public GameObject coinUIPrefab;
     
-    [Header("UI设置")]
-    [SerializeField] private Transform uiCanvas;
-    [SerializeField] private Vector2 coinTextPosition = new Vector2(120, -50);
-    [SerializeField] private string coinLabelText = "金币：";
+    [Header("UI Settings")]
+    [SerializeField] private string uiPanelName = "CoinPanel";
+    [SerializeField] private string coinLabelText = "Coins:";
+    [SerializeField] private Vector2 uiPosition = new Vector2(10, -10);
     
-    void Awake()
+    private void Start()
     {
-        // 安装金币系统
+        // Install coin system
         InstallCoinSystem();
     }
     
-    void InstallCoinSystem()
+    public void InstallCoinSystem()
     {
-        // 1. 检查并创建CoinManager
-        if (createCoinManagerIfMissing && CoinManager.Instance == null)
+        // 1. Check and create CoinManager
+        if (CoinManager.Instance == null && coinManagerPrefab != null)
         {
-            GameObject coinManagerObj = new GameObject("CoinManager");
-            coinManagerObj.AddComponent<CoinManager>();
-            Debug.Log("[CoinSystemInstaller] 已创建CoinManager");
+            Instantiate(coinManagerPrefab);
+            Debug.Log("[CoinSystemInstaller] Created CoinManager");
         }
         
-        // 2. 检查并创建CoinSaveSystem
-        if (createSaveSystemIfMissing && FindObjectOfType<CoinSaveSystem>() == null)
+        // 2. Check and create CoinSaveSystem
+        if (FindObjectOfType<CoinSaveSystem>() == null && coinSaveSystemPrefab != null)
         {
-            GameObject coinSaveObj = new GameObject("CoinSaveSystem");
-            coinSaveObj.AddComponent<CoinSaveSystem>();
-            Debug.Log("[CoinSystemInstaller] 已创建CoinSaveSystem");
+            Instantiate(coinSaveSystemPrefab);
+            Debug.Log("[CoinSystemInstaller] Created CoinSaveSystem");
         }
         
-        // 3. 检查并创建CoinDebugger
-        if (createDebuggerIfMissing && FindObjectOfType<CoinDebugger>() == null)
+        // 3. Check and create CoinDebugger
+        if (FindObjectOfType<CoinDebugger>() == null && coinDebuggerPrefab != null)
         {
-            GameObject debuggerObj = new GameObject("CoinDebugger");
-            debuggerObj.AddComponent<CoinDebugger>();
-            Debug.Log("[CoinSystemInstaller] 已创建CoinDebugger");
+            Instantiate(coinDebuggerPrefab);
+            Debug.Log("[CoinSystemInstaller] Created CoinDebugger");
         }
         
-        // 4. 创建UI
-        if (createUIIfMissing)
-        {
-            CreateCoinUI();
-        }
+        // 4. Create UI
+        InstallCoinUI();
     }
     
-    void CreateCoinUI()
+    private void InstallCoinUI()
     {
-        // 查找Canvas
-        Canvas canvas = uiCanvas?.GetComponent<Canvas>();
-        if (canvas == null)
-        {
-            canvas = FindObjectOfType<Canvas>();
-        }
-        
-        // 如果没有Canvas，创建一个
-        if (canvas == null)
-        {
-            GameObject canvasObj = new GameObject("UICanvas");
-            canvas = canvasObj.AddComponent<Canvas>();
-            canvasObj.AddComponent<CanvasScaler>();
-            canvasObj.AddComponent<GraphicRaycaster>();
+        if (coinUIPrefab == null)
+            return;
             
-            // 设置Canvas
+        // Find Canvas
+        Canvas canvas = FindObjectOfType<Canvas>();
+        if (canvas == null)
+        {
+            // If no Canvas exists, create one
+            GameObject canvasObject = new GameObject("UICanvas");
+            canvas = canvasObject.AddComponent<Canvas>();
+            canvasObject.AddComponent<CanvasScaler>();
+            canvasObject.AddComponent<GraphicRaycaster>();
+            
+            // Set up Canvas
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            Debug.Log("[CoinSystemInstaller] 已创建UI Canvas");
+            Debug.Log("[CoinSystemInstaller] Created UI Canvas");
         }
         
-        // 检查是否已存在CoinUI
+        // Check if CoinUI already exists
         if (FindObjectOfType<CoinUI>() != null)
         {
-            Debug.Log("[CoinSystemInstaller] CoinUI已存在，跳过创建");
+            Debug.Log("[CoinSystemInstaller] CoinUI already exists, skipping creation");
             return;
         }
         
-        // 创建金币UI面板
-        GameObject coinPanel = new GameObject("CoinPanel");
+        // Create coin UI panel
+        GameObject coinPanel = new GameObject(uiPanelName);
         coinPanel.transform.SetParent(canvas.transform, false);
-        RectTransform coinPanelRect = coinPanel.AddComponent<RectTransform>();
         
-        // 设置位置（屏幕左上角）
-        coinPanelRect.anchorMin = new Vector2(0, 1);
-        coinPanelRect.anchorMax = new Vector2(0, 1);
-        coinPanelRect.pivot = new Vector2(0, 1);
-        coinPanelRect.anchoredPosition = new Vector2(10, -10);
-        coinPanelRect.sizeDelta = new Vector2(200, 50);
+        // Set position (top left corner of screen)
+        RectTransform rectTransform = coinPanel.AddComponent<RectTransform>();
+        rectTransform.anchorMin = new Vector2(0, 1);
+        rectTransform.anchorMax = new Vector2(0, 1);
+        rectTransform.pivot = new Vector2(0, 1);
+        rectTransform.anchoredPosition = uiPosition;
         
-        // 创建标签文本
-        GameObject labelObj = new GameObject("CoinLabel");
-        labelObj.transform.SetParent(coinPanelRect, false);
-        Text labelText = labelObj.AddComponent<Text>();
+        // Create label text
+        GameObject labelObject = new GameObject("CoinLabel");
+        labelObject.transform.SetParent(coinPanel.transform, false);
         
-        // 设置标签
-        RectTransform labelRect = labelObj.GetComponent<RectTransform>();
-        labelRect.anchorMin = new Vector2(0, 0.5f);
-        labelRect.anchorMax = new Vector2(0, 0.5f);
-        labelRect.pivot = new Vector2(0, 0.5f);
-        labelRect.anchoredPosition = Vector2.zero;
-        labelRect.sizeDelta = new Vector2(70, 40);
-        
+        // Set up label
+        Text labelText = labelObject.AddComponent<Text>();
         labelText.text = coinLabelText;
         labelText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
         labelText.fontSize = 24;
         labelText.color = Color.white;
-        labelText.alignment = TextAnchor.MiddleLeft;
         
-        // 创建金币值文本
+        // Position the label
+        RectTransform labelRectTransform = labelText.rectTransform;
+        labelRectTransform.anchorMin = new Vector2(0, 0.5f);
+        labelRectTransform.anchorMax = new Vector2(0, 0.5f);
+        labelRectTransform.pivot = new Vector2(0, 0.5f);
+        labelRectTransform.anchoredPosition = new Vector2(0, 0);
+        labelRectTransform.sizeDelta = new Vector2(100, 30);
+        
+        // Create coin value text
         GameObject valueObj = new GameObject("CoinValue");
-        valueObj.transform.SetParent(coinPanelRect, false);
+        valueObj.transform.SetParent(coinPanel.transform, false);
         Text valueText = valueObj.AddComponent<Text>();
         
-        // 设置值文本
+        // Set value text
         RectTransform valueRect = valueObj.GetComponent<RectTransform>();
         valueRect.anchorMin = new Vector2(0, 0.5f);
         valueRect.anchorMax = new Vector2(0, 0.5f);
         valueRect.pivot = new Vector2(0, 0.5f);
-        valueRect.anchoredPosition = coinTextPosition;
+        valueRect.anchoredPosition = new Vector2(100, 0);
         valueRect.sizeDelta = new Vector2(100, 40);
         
         valueText.text = "0";
@@ -132,10 +123,10 @@ public class CoinSystemInstaller : MonoBehaviour
         valueText.color = Color.yellow;
         valueText.alignment = TextAnchor.MiddleLeft;
         
-        // 添加CoinUI组件
+        // Add CoinUI component
         CoinUI coinUI = coinPanel.AddComponent<CoinUI>();
         coinUI.coinText = valueText;
         
-        Debug.Log("[CoinSystemInstaller] 已创建金币UI");
+        Debug.Log("[CoinSystemInstaller] Created CoinUI");
     }
 }

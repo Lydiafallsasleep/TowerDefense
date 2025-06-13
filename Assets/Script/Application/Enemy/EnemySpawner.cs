@@ -3,20 +3,20 @@ using System.Collections;
 
 public class EnemySpawner : Singleton<EnemySpawner>
 {
-    [Header("生成设置")]
+    [Header("Spawn Settings")]
     public float spawnInterval = 2f;
     public Transform spawnPoint;
     public bool autoSpawn = true;
-    [Tooltip("初始延迟，确保路径先生成")]
+    [Tooltip("Initial delay to ensure paths are generated first")]
     public float initialDelay = 1f;
-    [Tooltip("场上允许的最大敌人数量")]
+    [Tooltip("Maximum number of enemies allowed on screen")]
     public int maxEnemiesOnScreen = 10;
 
-    // 简化路径相关设置
-    [Header("路径设置")]
-    [Tooltip("默认的陆地路径名称")]
+    // Simplified path settings
+    [Header("Path Settings")]
+    [Tooltip("Default land path name")]
     public string landPathName = "LandPathParent";
-    [Tooltip("默认的水路径名称")]
+    [Tooltip("Default water path name")]
     public string waterPathName = "WaterPathParent";
 
     private float timer = 0f;
@@ -28,39 +28,39 @@ public class EnemySpawner : Singleton<EnemySpawner>
 
     void Start()
     {
-        // 查找PlayerHealth组件
+        // Find PlayerHealth component
         playerHealth = FindObjectOfType<PlayerHealth>();
         if (playerHealth != null)
         {
-            // 订阅游戏结束事件
+            // Subscribe to game over event
             playerHealth.OnGameOver += OnGameOver;
-            Debug.Log("[EnemySpawner] 已订阅PlayerHealth的OnGameOver事件");
+            Debug.Log("[EnemySpawner] Subscribed to PlayerHealth's OnGameOver event");
         }
         else
         {
-            Debug.LogWarning("[EnemySpawner] 未找到PlayerHealth组件");
+            Debug.LogWarning("[EnemySpawner] PlayerHealth component not found");
         }
         
-        // 查找GameManager组件
+        // Find GameManager component
         gameManager = GameManager.Instance;
         
-        // 延迟一段时间再开始生成敌人
+        // Delay spawning enemies for a short time
         StartCoroutine(DelayedStart());
     }
     
     void OnDestroy()
     {
-        // 取消订阅事件
+        // Unsubscribe from events
         if (playerHealth != null)
         {
             playerHealth.OnGameOver -= OnGameOver;
         }
     }
     
-    // 游戏结束回调
+    // Game over callback
     private void OnGameOver()
     {
-        Debug.Log("[EnemySpawner] 收到游戏结束事件，停止生成敌人");
+        Debug.Log("[EnemySpawner] Received game over event, stopping enemy spawning");
         isGameOver = true;
         autoSpawn = false;
         StopAllCoroutines();
@@ -68,58 +68,58 @@ public class EnemySpawner : Singleton<EnemySpawner>
 
     IEnumerator DelayedStart()
     {
-        Debug.Log("EnemySpawner正在等待初始化...");
+        Debug.Log("EnemySpawner waiting for initialization...");
         yield return new WaitForSeconds(initialDelay);
         
-        // 检查路径是否存在
+        // Check if paths exist
         pathsAvailable = CheckPaths();
         initialized = true;
         
         if (pathsAvailable)
         {
-            Debug.Log("EnemySpawner初始化完成，路径可用，开始生成敌人");
+            Debug.Log("EnemySpawner initialization complete, paths available, starting to spawn enemies");
         }
         else
         {
-            Debug.LogError("EnemySpawner初始化完成，但路径不可用，敌人可能无法正确移动！");
-            // 简化处理，直接强制允许生成
+            Debug.LogError("EnemySpawner initialization complete, but paths unavailable, enemies may not move correctly!");
+            // Simplified handling, force allow spawning
             pathsAvailable = true;
             CreateDefaultPaths();
         }
     }
 
-    // 简化的路径检查方法
+    // Simplified path checking method
     bool CheckPaths()
     {
         bool landPathOk = false;
         bool waterPathOk = false;
         
-        // 检查陆地路径
+        // Check land path
         GameObject landPathObj = GameObject.Find(landPathName);
         Transform landPath = landPathObj?.transform;
         if (landPath != null && landPath.childCount > 0)
         {
-            Debug.Log($"找到陆地路径，路径点数量：{landPath.childCount}");
+            Debug.Log($"Found land path, waypoint count: {landPath.childCount}");
             landPathOk = true;
         }
         else
         {
-            Debug.LogError($"无法找到有效的陆地路径({landPathName})或路径点为空");
+            Debug.LogError($"Cannot find valid land path ({landPathName}) or path is empty");
             CreateDefaultPath(landPathName, true);
             landPathOk = true;
         }
 
-        // 检查水路径
+        // Check water path
         GameObject waterPathObj = GameObject.Find(waterPathName);
         Transform waterPath = waterPathObj?.transform;
         if (waterPath != null && waterPath.childCount > 0)
         {
-            Debug.Log($"找到水路径，路径点数量：{waterPath.childCount}");
+            Debug.Log($"Found water path, waypoint count: {waterPath.childCount}");
             waterPathOk = true;
         }
         else
         {
-            Debug.LogError($"无法找到有效的水路径({waterPathName})或路径点为空");
+            Debug.LogError($"Cannot find valid water path ({waterPathName}) or path is empty");
             CreateDefaultPath(waterPathName, false);
             waterPathOk = true;
         }
@@ -127,14 +127,14 @@ public class EnemySpawner : Singleton<EnemySpawner>
         return landPathOk && waterPathOk;
     }
 
-    // 创建默认路径
+    // Create default paths
     void CreateDefaultPaths()
     {
         CreateDefaultPath(landPathName, true);
         CreateDefaultPath(waterPathName, false);
     }
     
-    // 创建一个默认路径
+    // Create a default path
     void CreateDefaultPath(string pathName, bool isLandPath)
     {
         GameObject pathParent = GameObject.Find(pathName);
@@ -143,20 +143,20 @@ public class EnemySpawner : Singleton<EnemySpawner>
             pathParent = new GameObject(pathName);
         }
         
-        // 清除现有子对象
+        // Clear existing children
         foreach (Transform child in pathParent.transform)
         {
             Destroy(child.gameObject);
         }
         
-        // 创建路径点
+        // Create waypoints
         Vector3[] points;
         float centerX = 0f;
         float centerY = 0f;
         
         if (isLandPath)
         {
-            // 创建Z字形陆地路径
+            // Create Z-shaped land path
             points = new Vector3[] {
                 new Vector3(centerX - 5f, centerY - 5f, 0),
                 new Vector3(centerX + 5f, centerY - 5f, 0),
@@ -168,7 +168,7 @@ public class EnemySpawner : Singleton<EnemySpawner>
         }
         else
         {
-            // 创建环形水路径
+            // Create circular water path
             points = new Vector3[] {
                 new Vector3(centerX - 5f, centerY - 5f, 0),
                 new Vector3(centerX + 5f, centerY - 5f, 0),
@@ -178,30 +178,30 @@ public class EnemySpawner : Singleton<EnemySpawner>
             };
         }
         
-        // 创建路径点
+        // Create waypoints
         for (int i = 0; i < points.Length; i++)
         {
             GameObject waypoint = new GameObject($"Waypoint_{i}");
             waypoint.transform.position = points[i];
             waypoint.transform.SetParent(pathParent.transform);
-            Debug.Log($"创建默认路径点 {i} 在位置: {points[i]}");
+            Debug.Log($"Created default waypoint {i} at position: {points[i]}");
         }
         
-        Debug.Log($"默认{(isLandPath ? "陆地" : "水路")}路径创建完成，路径点数量: {pathParent.transform.childCount}");
+        Debug.Log($"Default {(isLandPath ? "land" : "water")} path created, waypoint count: {pathParent.transform.childCount}");
     }
 
     void Update()
     {
-        // 如果游戏已结束，停止生成敌人
+        // If game is over, stop spawning enemies
         if (isGameOver)
         {
             return;
         }
         
-        // 检查GameManager是否标记游戏结束
+        // Check if GameManager has marked game as over
         if (gameManager != null && gameManager.isGameOver)
         {
-            Debug.Log("[EnemySpawner] 检测到GameManager.isGameOver为true，停止生成敌人");
+            Debug.Log("[EnemySpawner] Detected GameManager.isGameOver is true, stopping enemy spawning");
             isGameOver = true;
             autoSpawn = false;
             return;
@@ -212,13 +212,13 @@ public class EnemySpawner : Singleton<EnemySpawner>
             return;
         }
 
-        // 检查当前场景中的敌人数量
+        // Check current number of enemies in the scene
         int currentEnemyCount = GameObject.FindObjectsOfType<EnemyMovement>().Length;
         
-        // 如果已达到最大敌人数，则不再生成
+        // If maximum enemy count reached, don't spawn more
         if (currentEnemyCount >= maxEnemiesOnScreen)
         {
-            timer = 0f; // 重置计时器
+            timer = 0f; // Reset timer
             return;
         }
 
@@ -227,224 +227,254 @@ public class EnemySpawner : Singleton<EnemySpawner>
         {
             timer = 0f;
             SpawnEnemy();
-            Debug.Log($"自动生成敌人，当前敌人数量：{currentEnemyCount + 1}");
+            Debug.Log($"Automatically spawned enemy, current enemy count: {currentEnemyCount + 1}");
         }
     }
 
     public void SpawnEnemy(EnemyMovement.MonsterType? type = null)
     {
-        // 如果游戏已结束，不再生成敌人
+        // If game is over, don't spawn more enemies
         if (isGameOver)
         {
-            Debug.Log("[EnemySpawner] 游戏已结束，不再生成敌人");
+            Debug.Log("[EnemySpawner] Game is over, not spawning more enemies");
             return;
         }
         
-        // 确保路径可用
+        // Ensure paths are available
         if (!pathsAvailable)
         {
             pathsAvailable = CheckPaths();
             if (!pathsAvailable)
             {
-                Debug.LogError("由于路径不可用，无法生成敌人，但不会阻止下次尝试");
-                pathsAvailable = true; // 强制重设为true，确保下次仍然尝试生成
+                Debug.LogError("Cannot spawn enemy due to unavailable paths, but will not prevent next attempt");
+                pathsAvailable = true; // Force reset to true to ensure next attempt still happens
                 return;
             }
         }
         
-        // 决定生成哪种敌人类型
-        EnemyMovement.MonsterType enemyType = type ?? (Random.value > 0.5f ? EnemyMovement.MonsterType.Slime : EnemyMovement.MonsterType.Fish);
-        string enemyPrefabName = enemyType == EnemyMovement.MonsterType.Slime ? "Slime" : "Fish";
+        // If no specific type provided, randomly choose one
+        EnemyMovement.MonsterType enemyType = type ?? 
+            (Random.value > 0.5f ? EnemyMovement.MonsterType.Slime : EnemyMovement.MonsterType.Fish);
         
-        // 尝试从对象池获取敌人
-        GameObject enemy = null;
-        if (ObjectPool.Instance != null)
-        {
-            enemy = ObjectPool.Instance.OnSpawn(enemyPrefabName);
-        }
+        // Determine spawn position
+        Vector3 position = spawnPoint != null ? 
+            spawnPoint.position : new Vector3(-8f, Random.Range(-2f, 2f), 0f);
         
-        // 如果对象池没有返回有效对象，尝试直接实例化
-        if (enemy == null)
-        {
-            // 查找预制体资源
-            GameObject prefab = Resources.Load<GameObject>($"Prefabs/Enemies/{enemyPrefabName}");
-            if (prefab != null)
-            {
-                enemy = Instantiate(prefab);
-            }
-            else
-            {
-                Debug.LogError($"无法加载敌人预制体: {enemyPrefabName}");
-                return;
-            }
-        }
+        // Spawn the enemy
+        GameObject enemy = SpawnEnemyAtPosition(enemyType, position);
         
-        // 设置敌人位置和类型
         if (enemy != null)
         {
-            // 设置初始位置
-            if (spawnPoint != null)
-            {
-                enemy.transform.position = spawnPoint.position;
-            }
-            else
-            {
-                enemy.transform.position = Vector3.zero;
-            }
-            
-            // 设置敌人类型
-            EnemyMovement movement = enemy.GetComponent<EnemyMovement>();
-            if (movement != null)
-            {
-                movement.monsterType = enemyType;
-            }
-            else
-            {
-                Debug.LogError($"生成的敌人对象没有EnemyMovement组件: {enemy.name}");
-            }
+            Debug.Log($"Spawned {enemyType} enemy at {position}");
+        }
+        else
+        {
+            Debug.LogError($"Failed to spawn {enemyType} enemy");
         }
     }
 
     public void SpawnMultipleEnemies(int count)
     {
-        // 如果游戏已结束，不再生成敌人
         if (isGameOver)
         {
-            Debug.Log("[EnemySpawner] 游戏已结束，不再生成敌人");
+            Debug.Log("[EnemySpawner] Game is over, not spawning multiple enemies");
             return;
         }
         
+        // Use coroutine to spread out spawns
         StartCoroutine(SpawnMultipleEnemiesCoroutine(count));
     }
-
+    
     private IEnumerator SpawnMultipleEnemiesCoroutine(int count)
     {
+        Debug.Log($"Starting to spawn {count} enemies");
+        
         for (int i = 0; i < count; i++)
         {
-            // 如果游戏已结束，中断生成
             if (isGameOver)
-            {
-                Debug.Log("[EnemySpawner] 游戏已结束，中断批量生成敌人");
-                yield break;
-            }
-            
+                break;
+                
             SpawnEnemy();
             yield return new WaitForSeconds(0.5f);
         }
+        
+        Debug.Log($"Finished spawning multiple enemies");
     }
     
-    // 公共方法：设置游戏结束状态
     public void SetGameOver(bool gameOver)
     {
+        // Set game over status
         isGameOver = gameOver;
-        if (isGameOver)
+        
+        if (gameOver)
         {
+            // Stop auto-spawning when game over
             autoSpawn = false;
+            
+            // Stop all running coroutines
             StopAllCoroutines();
-            Debug.Log("[EnemySpawner] 游戏结束状态已设置，停止生成敌人");
-        }
-        else
-        {
-            autoSpawn = true;
-            Debug.Log("[EnemySpawner] 游戏结束状态已取消，恢复生成敌人");
+            
+            // Log status
+            Debug.Log("[EnemySpawner] Game over status set, enemy spawning stopped");
+            
+            // Optionally handle existing enemies
+            if (gameOver)
+            {
+                // Could add code here to clear all enemies if needed
+            }
         }
     }
     
-    /// <summary>
-    /// 生成指定类型的敌人并返回敌人游戏对象
-    /// </summary>
-    /// <param name="type">敌人类型</param>
-    /// <returns>生成的敌人游戏对象</returns>
     public GameObject SpawnEnemyWithType(EnemyMovement.MonsterType type)
     {
-        // 如果游戏已结束，不再生成敌人
+        // If game is over, don't spawn
         if (isGameOver)
         {
-            Debug.Log("[EnemySpawner] 游戏已结束，不再生成敌人");
+            Debug.Log("[EnemySpawner] Game is over, not spawning requested enemy");
             return null;
         }
         
-        // 确保路径可用
+        // Ensure paths are available
         if (!pathsAvailable)
         {
             pathsAvailable = CheckPaths();
             if (!pathsAvailable)
             {
-                Debug.LogError("由于路径不可用，无法生成敌人");
+                Debug.LogError("Cannot spawn enemy due to unavailable paths");
                 return null;
             }
         }
         
-        // 根据类型确定预制体名称
-        string enemyPrefabName = type == EnemyMovement.MonsterType.Slime ? "Slime" : "Fish";
+        // Determine spawn position
+        Vector3 position;
+        if (spawnPoint != null)
+        {
+            position = spawnPoint.position;
+        }
+        else
+        {
+            // Default spawn position based on enemy type
+            if (type == EnemyMovement.MonsterType.Slime)
+            {
+                // Land enemy starts on the left side
+                position = new Vector3(-8f, 0f, 0f);
+            }
+            else // Fish
+            {
+                // Water enemy starts on the left side slightly lower
+                position = new Vector3(-8f, -2f, 0f);
+            }
+        }
         
-        // 尝试从对象池获取敌人
+        // Try using the object pool first
         GameObject enemy = null;
         if (ObjectPool.Instance != null)
         {
-            enemy = ObjectPool.Instance.OnSpawn(enemyPrefabName);
-        }
-        
-        // 如果对象池没有返回有效对象，尝试直接实例化
-        if (enemy == null)
-        {
-            // 查找预制体资源
-            GameObject prefab = Resources.Load<GameObject>($"Prefabs/Enemies/{enemyPrefabName}");
-            if (prefab != null)
-            {
-                enemy = Instantiate(prefab);
-            }
-            else
-            {
-                Debug.LogError($"无法加载敌人预制体: {enemyPrefabName}");
-                return null;
-            }
-        }
-        
-        // 设置敌人位置和类型
-        if (enemy != null)
-        {
-            // 设置初始位置
-            if (spawnPoint != null)
-            {
-                enemy.transform.position = spawnPoint.position;
-            }
-            else
-            {
-                enemy.transform.position = Vector3.zero;
-            }
+            string prefabName = type == EnemyMovement.MonsterType.Slime ? "Slime" : "Fish";
+            enemy = ObjectPool.Instance.OnSpawn(prefabName);
             
-            // 设置敌人类型
-            EnemyMovement movement = enemy.GetComponent<EnemyMovement>();
-            if (movement != null)
+            if (enemy != null)
             {
-                movement.monsterType = type;
+                // Set the position
+                enemy.transform.position = position;
+                
+                // Ensure enemy movement component exists and is set up
+                EnemyMovement movement = enemy.GetComponent<EnemyMovement>();
+                if (movement != null)
+                {
+                    movement.monsterType = type;
+                    // The OnEnable method will handle path initialization
+                }
+                else
+                {
+                    Debug.LogError($"Spawned enemy {prefabName} lacks EnemyMovement component");
+                }
+                
+                Debug.Log($"Spawned {prefabName} from object pool at {position}");
             }
             else
             {
-                Debug.LogError($"生成的敌人对象没有EnemyMovement组件: {enemy.name}");
+                Debug.LogError($"Failed to spawn {prefabName} from object pool");
             }
+        }
+        else
+        {
+            Debug.LogError("ObjectPool.Instance not found, cannot spawn enemy");
         }
         
         return enemy;
     }
     
-    // 重置敌人生成器状态
     public void ResetState()
     {
-        Debug.Log("[EnemySpawner] 重置敌人生成器状态");
-        
-        // 停止所有协程
-        StopAllCoroutines();
-        
-        // 重置状态
-        isGameOver = false;
-        autoSpawn = true;
+        // Reset spawner state
         timer = 0f;
+        isGameOver = false;
         
-        // 重新初始化
-        StartCoroutine(DelayedStart());
+        // Clear existing enemies if needed
+        EnemyMovement[] existingEnemies = FindObjectsOfType<EnemyMovement>();
+        foreach (EnemyMovement enemy in existingEnemies)
+        {
+            if (ObjectPool.Instance != null)
+            {
+                ObjectPool.Instance.OnDespawn(enemy.gameObject);
+            }
+            else
+            {
+                Destroy(enemy.gameObject);
+            }
+        }
         
-        Debug.Log("[EnemySpawner] 敌人生成器状态已重置");
+        Debug.Log("[EnemySpawner] State reset, existing enemies cleared");
+        
+        // Re-check paths
+        pathsAvailable = CheckPaths();
+        
+        // Restart auto-spawning if enabled
+        if (autoSpawn)
+        {
+            Debug.Log("[EnemySpawner] Auto-spawning restarted");
+        }
+    }
+    
+    private GameObject SpawnEnemyAtPosition(EnemyMovement.MonsterType enemyType, Vector3 position)
+    {
+        // Try using object pool first
+        GameObject enemy = null;
+        
+        string prefabName = enemyType == EnemyMovement.MonsterType.Slime ? "Slime" : "Fish";
+        
+        if (ObjectPool.Instance != null)
+        {
+            // Get from object pool
+            enemy = ObjectPool.Instance.OnSpawn(prefabName);
+            
+            if (enemy == null)
+            {
+                Debug.LogError($"Failed to get {prefabName} from object pool");
+                return null;
+            }
+            
+            // Set position
+            enemy.transform.position = position;
+            
+            // Initialize enemy if needed
+            EnemyMovement movement = enemy.GetComponent<EnemyMovement>();
+            if (movement != null)
+            {
+                movement.monsterType = enemyType;
+                // The OnEnable method will handle path initialization
+            }
+            else
+            {
+                Debug.LogError($"Spawned enemy lacks EnemyMovement component");
+            }
+        }
+        else
+        {
+            Debug.LogError("ObjectPool.Instance not found, cannot spawn enemy");
+        }
+        
+        return enemy;
     }
 } 

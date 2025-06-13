@@ -3,50 +3,71 @@ using System.Collections;
 
 public enum TargetPriority 
 {
-    First,      // 第一个进入范围的敌人
-    Last,       // 最后一个进入范围的敌人
-    Strongest,  // 生命值最高的敌人
-    Weakest,    // 生命值最低的敌人
-    Closest,    // 最近的敌人
-    Furthest    // 最远的敌人
+    First,      // First enemy to enter range
+    Last,       // Last enemy to enter range
+    Strongest,  // Enemy with highest health
+    Weakest,    // Enemy with lowest health
+    Closest,    // Closest enemy
+    Furthest    // Furthest enemy
 }
 
-public abstract class BaseTower : MonoBehaviour
+/// <summary>
+/// Base tower class, parent class for all towers
+/// </summary>
+public class BaseTower : MonoBehaviour
 {
-    [Header("基础属性")]
-    public string towerName;
+    [Header("Basic Properties")]
+    public string towerName = "Base Tower";
     public int level = 1;
+    public int cost = 100;
+    public int sellValue = 70;
+    public int upgradePrice = 150;
+    
+    [Header("Position Settings")]
+    public Vector3 positionOffset = Vector3.zero; // Offset for tower position
+    
+    [Header("Status")]
+    public bool isPlaced = false;
+    public bool canUpgrade = true;
     public int maxLevel = 3;
-    public int buildCost = 100;
-    public int upgradeCost = 150;
-    public float range = 5f;
+    
+    protected TowerAttackSystem attackSystem;
+    
+    [Header("Basic Attributes")]
+    public float range = 1000f;
     public float damage = 10f;
-    public float fireRate = 1f; // 每秒攻击次数
+    public float fireRate = 1f; // Attacks per second
     public TargetPriority targetPriority = TargetPriority.First;
     public GameObject rangeIndicator;
 
-    [Header("升级加成")]
+    [Header("Upgrade Bonuses")]
     public float damageIncreasePerLevel = 5f;
-    public float rangeIncreasePerLevel = 0.5f;
+    public float rangeIncreasePerLevel = 100f;
     public float fireRateIncreasePerLevel = 0.2f;
 
-    [Header("状态")]
+    [Header("Component References")]
+    protected SpriteRenderer spriteRenderer;
+    public Sprite[] levelSprites; // Different appearance for different levels
+
+    [Header("Status")]
     protected Transform target;
     protected float fireCountdown = 0f;
     protected bool isActive = true;
 
-    [Header("组件引用")]
-    protected SpriteRenderer spriteRenderer;
-    public Sprite[] levelSprites; // 不同等级的外观
-
     protected virtual void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+        // Get attack system
+        attackSystem = GetComponent<TowerAttackSystem>();
+        if (attackSystem == null)
+        {
+            attackSystem = gameObject.AddComponent<TowerAttackSystem>();
+        }
     }
 
     protected virtual void Start()
     {
-        InvokeRepeating("UpdateTarget", 0f, 0.5f); // 每0.5秒更新目标
+        InvokeRepeating("UpdateTarget", 0f, 0.5f); // Update target every 0.5 seconds
         UpdateVisuals();
     }
 
@@ -55,21 +76,33 @@ public abstract class BaseTower : MonoBehaviour
         if (!isActive || target == null)
             return;
 
-        // 处理攻击冷却
+        // Handle attack cooldown
         if (fireCountdown > 0)
         {
             fireCountdown -= Time.deltaTime;
         }
         else
         {
-            Attack();
+            // Call attack system to perform attack, not abstract method
+            PerformAttack();
             fireCountdown = 1f / fireRate;
+        }
+    }
+    
+    // Perform attack, using attack system
+    protected virtual void PerformAttack()
+    {
+        // Default implementation, subclasses can override
+        if (attackSystem != null && target != null)
+        {
+            // Use attack system to handle attack logic
+            // This implementation is not needed as the attack system will handle it in Update
         }
     }
 
     protected virtual void UpdateTarget()
     {
-        // 获取所有带有"Enemy"标签的游戏对象
+        // Get all game objects with "Enemy" tag
         GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
         
         if (enemies.Length == 0)
@@ -86,7 +119,7 @@ public abstract class BaseTower : MonoBehaviour
                 
             float distanceToEnemy = Vector3.Distance(transform.position, enemy.transform.position);
             
-            // 如果敌人超出范围，跳过
+            // If enemy is out of range, skip
             if (distanceToEnemy > range)
                 continue;
 
@@ -94,7 +127,7 @@ public abstract class BaseTower : MonoBehaviour
             switch (targetPriority)
             {
                 case TargetPriority.First:
-                    // 路径进度最高的敌人
+                    // Enemy with highest path progress
                     EnemyMovement movement = enemy.GetComponent<EnemyMovement>();
                     if (movement != null)
                     {
@@ -102,35 +135,35 @@ public abstract class BaseTower : MonoBehaviour
                     }
                     break;
                 case TargetPriority.Last:
-                    // 路径进度最低的敌人
+                    // Enemy with lowest path progress
                     movement = enemy.GetComponent<EnemyMovement>();
                     if (movement != null)
                     {
-                        targetValue = -movement.GetPathProgress(); // 取负值使最小值成为优先目标
+                        targetValue = -movement.GetPathProgress(); // Negative value to prioritize lowest progress
                     }
                     break;
                 case TargetPriority.Strongest:
-                    // 生命值最高的敌人
-                    var health = enemy.GetComponent<EnemyHealth>(); // 假设有此组件
+                    // Enemy with highest health
+                    var health = enemy.GetComponent<EnemyHealth>(); // Assuming it exists
                     if (health != null)
                     {
                         targetValue = health.GetCurrentHealth();
                     }
                     break;
                 case TargetPriority.Weakest:
-                    // 生命值最低的敌人
+                    // Enemy with lowest health
                     health = enemy.GetComponent<EnemyHealth>();
                     if (health != null)
                     {
-                        targetValue = -health.GetCurrentHealth(); // 取负值使最小值成为优先目标
+                        targetValue = -health.GetCurrentHealth(); // Negative value to prioritize lowest health
                     }
                     break;
                 case TargetPriority.Closest:
-                    // 距离最近的敌人
-                    targetValue = -distanceToEnemy; // 取负值使最小距离成为优先目标
+                    // Closest enemy
+                    targetValue = -distanceToEnemy; // Negative value to prioritize closest distance
                     break;
                 case TargetPriority.Furthest:
-                    // 距离最远的敌人（仍在范围内）
+                    // Furthest enemy (still in range)
                     targetValue = distanceToEnemy;
                     break;
             }
@@ -146,25 +179,88 @@ public abstract class BaseTower : MonoBehaviour
         target = bestTarget;
     }
 
-    // 子类必须实现攻击方法
-    protected abstract void Attack();
-
-    // 升级塔
+    /// <summary>
+    /// Upgrade tower
+    /// </summary>
     public virtual bool Upgrade()
     {
-        if (level >= maxLevel)
+        if (!canUpgrade || level >= maxLevel)
             return false;
 
         level++;
-        damage += damageIncreasePerLevel;
-        range += rangeIncreasePerLevel;
-        fireRate += fireRateIncreasePerLevel;
-
-        UpdateVisuals();
+        
+        // Update attributes
+        UpdateStats();
+        
+        // Update sell value
+        sellValue = (int)(cost * 0.7f) + (int)(upgradePrice * (level - 1) * 0.7f);
+        
+        // Update upgrade price (50% increase per level)
+        upgradePrice = (int)(upgradePrice * 1.5f);
+        
+        // Check if max level reached
+        if (level >= maxLevel)
+        {
+            canUpgrade = false;
+        }
+        
+        Debug.Log($"[{towerName}] Upgraded to {level} level");
         return true;
     }
+    
+    /// <summary>
+    /// Update tower attributes
+    /// </summary>
+    protected virtual void UpdateStats()
+    {
+        if (attackSystem != null)
+        {
+            // 20% attack power and 10% attack speed increase per level
+            float damageMultiplier = 1f + (level - 1) * 0.2f;
+            float speedMultiplier = 1f + (level - 1) * 0.1f;
+            
+            attackSystem.attackDamage *= damageMultiplier / (1f + (level - 2) * 0.2f); // Adjusted to relative previous level increase
+            attackSystem.attackSpeed *= speedMultiplier / (1f + (level - 2) * 0.1f);   // Adjusted to relative previous level increase
+            
+            // 5% attack range increase per level
+            if (level > 1) // Start increasing range from level 2
+            {
+                attackSystem.attackRange *= 1.05f;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Sell tower
+    /// </summary>
+    public virtual int Sell()
+    {
+        Debug.Log($"[{towerName}] Sold, returning {sellValue} coins");
+        
+        // Delay destruction of object to ensure time to handle sell logic
+        Destroy(gameObject, 0.1f);
+        
+        return sellValue;
+    }
+    
+    /// <summary>
+    /// Place tower
+    /// </summary>
+    public virtual void Place()
+    {
+        isPlaced = true;
+        Debug.Log($"[{towerName}] Placed");
+    }
+    
+    /// <summary>
+    /// Reset tower status
+    /// </summary>
+    public virtual void ResetState()
+    {
+        // Subclasses can override this method to add specific reset logic
+    }
 
-    // 更新塔的视觉效果，根据等级
+    // Update tower visuals, based on level
     protected virtual void UpdateVisuals()
     {
         if (spriteRenderer != null && levelSprites != null && level <= levelSprites.Length)
@@ -172,61 +268,43 @@ public abstract class BaseTower : MonoBehaviour
             spriteRenderer.sprite = levelSprites[level - 1];
         }
 
-        // 更新范围指示器
+        // Update range indicator
         if (rangeIndicator != null)
         {
             rangeIndicator.transform.localScale = new Vector3(range * 2, range * 2, 1f);
         }
     }
 
-    // 在Unity编辑器中绘制塔的攻击范围
+    // Draw tower attack range in Unity editor
     protected virtual void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, range);
     }
 
-    // 获取升级费用
+    // Get upgrade cost
     public virtual int GetUpgradeCost()
     {
-        return upgradeCost * level;
+        return upgradePrice * level;
     }
 
-    // 获取售出价值（一般为建造成本和升级成本总和的一部分）
+    // Get sell value (usually a portion of total construction cost and upgrade cost)
     public virtual int GetSellValue()
     {
-        int totalCost = buildCost;
+        int totalCost = cost;
         for (int i = 1; i < level; i++)
         {
-            totalCost += upgradeCost * i;
+            totalCost += upgradePrice * i;
         }
-        return Mathf.FloorToInt(totalCost * 0.7f); // 返回70%的成本
+        return Mathf.FloorToInt(totalCost * 0.7f); // Return 70% of cost
     }
-
-    // 重置塔的状态
-    public virtual void ResetState()
+    
+    /// <summary>
+    /// Called when tower is destroyed
+    /// </summary>
+    protected virtual void OnDestroy()
     {
-        Debug.Log($"[{towerName}] 重置塔状态");
-        
-        // 重置目标
-        target = null;
-        
-        // 重置攻击冷却
-        fireCountdown = 0f;
-        
-        // 重置等级（如果需要）
-        // 如果需要保留当前等级，则注释掉以下代码
-        if (level > 1)
-        {
-            level = 1;
-            damage = damage - damageIncreasePerLevel * (level - 1);
-            range = range - rangeIncreasePerLevel * (level - 1);
-            fireRate = fireRate - fireRateIncreasePerLevel * (level - 1);
-            UpdateVisuals();
-        }
-        
-        // 重新开始寻找目标
-        CancelInvoke("UpdateTarget");
-        InvokeRepeating("UpdateTarget", 0f, 0.5f);
+        // Base class implementation, subclasses can override
+        CancelInvoke(); // Cancel all Invoke calls
     }
 } 

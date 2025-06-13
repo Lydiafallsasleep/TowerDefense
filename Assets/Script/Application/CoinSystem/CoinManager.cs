@@ -3,13 +3,13 @@ using System;
 
 public class CoinManager : Singleton<CoinManager>
 {
-    [Header("金币设置")]
+    [Header("Coin Settings")]
     [SerializeField] private int startingCoins = 200;
     [SerializeField] private int maxCoins = 9999;
     
     private int _currentCoins;
     
-    // 事件系统，用于通知UI更新
+    // Event system for notifying UI updates
     public event Action<int> OnCoinsChanged;
     
     public int CurrentCoins
@@ -22,7 +22,7 @@ public class CoinManager : Singleton<CoinManager>
             {
                 _currentCoins = newValue;
                 OnCoinsChanged?.Invoke(_currentCoins);
-                Debug.Log($"金币更新：{_currentCoins}");
+                Debug.Log($"Coins updated: {_currentCoins}");
             }
         }
     }
@@ -47,7 +47,7 @@ public class CoinManager : Singleton<CoinManager>
     {
         if (!HasEnoughCoins(amount))
         {
-            Debug.Log($"金币不足！需要{amount}，当前{CurrentCoins}");
+            Debug.Log($"Not enough coins! Need {amount}, current {CurrentCoins}");
             return false;
         }
         
@@ -62,29 +62,29 @@ public class CoinManager : Singleton<CoinManager>
         CurrentCoins += amount;
     }
     
-    // 用于调试的方法
+    // Method for debugging
     public void ResetCoins()
     {
         CurrentCoins = startingCoins;
     }
     
-    // 设置起始金币数量
+    // Set starting coin amount
     public void SetStartingCoins(int amount)
     {
         startingCoins = Mathf.Max(0, amount);
         ResetCoins();
     }
 
-       // 在任何脚本中添加以下代码
-   void Update()
-   {
-       if (Input.GetKeyDown(KeyCode.M)) // 按M键测试
-       {
-           CoinManager.Instance.AddCoins(10);
-       }
-       if (Input.GetKeyDown(KeyCode.N)) // 按M键测试
-       {
-           CoinManager.Instance.TrySpendCoins(10);
-       }
-   }
+    // Add the following code in any script
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.M)) // Press M key to test
+        {
+            CoinManager.Instance.AddCoins(10);
+        }
+        if (Input.GetKeyDown(KeyCode.N)) // Press N key to test
+        {
+            CoinManager.Instance.TrySpendCoins(10);
+        }
+    }
 }

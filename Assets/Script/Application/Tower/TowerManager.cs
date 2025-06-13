@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using UnityEngine.EventSystems;
 
 public enum TowerType
 {
@@ -12,75 +13,79 @@ public enum TowerType
 
 public class TowerManager : Singleton<TowerManager>
 {
-    [Header("塔预制体")]
+    [Header("Tower Prefabs")]
     public GameObject cannonTowerPrefab;
     public GameObject arrowTowerPrefab;
     public GameObject laserTowerPrefab;
     
-    [Header("放置设置")]
-    public Tilemap placementTilemap; // 用于确定可放置区域
+    [Header("Placement Settings")]
+    public Tilemap placementTilemap; // Used to determine placeable areas
     public Color validPlacementColor = Color.green;
     public Color invalidPlacementColor = Color.red;
+    public Vector3 towerPositionOffset = new Vector3(0, 0.5f, 0); // Offset for tower placement position
     
-    [Header("资源")]
-    public int currentGold = 300; // 起始金币
+    [Header("Resources")]
+    public int currentGold = 200; // Starting gold
     
-    [Header("UI引用")]
+    [Header("UI References")]
     public Text goldText;
     public GameObject buildPanel;
     public GameObject upgradePanel;
     public Text towerInfoText;
     public Button upgradeButton;
     public Button sellButton;
-    public Text notificationText; // 通知文本
-    private float notificationDuration = 3f; // 通知显示时间
+    public Text notificationText; // Notification text
+    private float notificationDuration = 3f; // Notification display duration
 
-    [Header("范围可视化")]
+    [Header("Range Visualization")]
     public bool showRangeOnSelect = true;
     public GameObject rangeIndicatorPrefab;
     
-    // 记录已建造的塔
+    // Record of built towers
     private Dictionary<Vector3Int, BaseTower> builtTowers = new Dictionary<Vector3Int, BaseTower>();
     
-    // 当前选中的塔类型
-    private TowerType selectedTowerType = TowerType.Cannon;
+    // Currently selected tower type
+    private TowerType selectedTowerType;
     
-    // 当前选中的塔(用于升级或出售)
+    // Currently selected tower (for upgrading or selling)
     private BaseTower selectedTower;
     
-    // 是否使用预设放置点
+    // Whether to use preset placement points
     public bool usePresetPlacementPoints = true;
     
-    // 当前选中的放置点
+    // Currently selected placement point
     private TowerPlacementPoint selectedPlacementPoint;
     
-    // 塔的预览
+    // Tower preview
     private GameObject towerPreview;
     private SpriteRenderer previewRenderer;
     
-    // 范围指示器
+    // Range indicator
     private GameObject currentRangeIndicator;
+    
+    // In the TowerManager class field area
+    public TowerOperationPanel towerOperationPanel;
     
     void Start()
     {
-        // 强制使用预设放置点
+        // Force use of preset placement points
         usePresetPlacementPoints = true;
         
-        // 初始化塔预制体
+        // Initialize tower prefabs
         InitializeTowerPrefabs();
         
-        // 初始化预览
+        // Initialize preview
         CreateTowerPreview();
         
-        // 初始化UI
+        // Initialize UI
         UpdateGoldDisplay();
         ShowBuildPanel();
         
-        // 如果使用预设放置点，高亮可用的放置点
+        // If using preset placement points, highlight available points
         if (usePresetPlacementPoints)
         {
             TowerPlacementManager placementManager = TowerPlacementManager.Instance;
-            if (placementManager != null && placementManager.highlightAvailablePoints)
+            if (placementManager != null)
             {
                 placementManager.HighlightAvailablePoints(true);
             }
@@ -89,16 +94,13 @@ public class TowerManager : Singleton<TowerManager>
     
     void Update()
     {
-        // 更新预览位置
+        // Update preview position
         UpdateTowerPreview();
         
-        // 检测鼠标点击
-        if (Input.GetMouseButtonDown(0))
-        {
-            HandleMouseClick();
-        }
+        // Detect mouse click
+        CheckMouseClick();
         
-        // 取消选择
+        // Cancel selection
         if (Input.GetMouseButtonDown(1) && (selectedTower != null || selectedPlacementPoint != null))
         {
             DeselectTower();
@@ -106,79 +108,198 @@ public class TowerManager : Singleton<TowerManager>
         }
     }
     
-    // 初始化塔预制体，确保它们存在
+    // Initialize tower prefabs, ensure they exist
     void InitializeTowerPrefabs()
     {
-        Debug.Log("TowerManager: 初始化塔预制体");
+        Debug.Log("TowerManager: Initializing tower prefabs");
         
-        // 尝试从Resources加载预制体
+        // Check Resources directory structure
+        Debug.Log("Checking Resources directory structure...");
+        Object[] allResources = Resources.LoadAll("");
+        foreach (Object res in allResources)
+        {
+            Debug.Log($"Resource: {res.name} (Type: {res.GetType().Name})");
+        }
+        
+        // Try to load prefabs from Resources - note that path doesn't need "Resources/" prefix or extension
         if (cannonTowerPrefab == null)
+        {
+            // Try multiple possible paths
             cannonTowerPrefab = Resources.Load<GameObject>("tower/CannonTower");
+            if (cannonTowerPrefab == null) cannonTowerPrefab = Resources.Load<GameObject>("Tower/CannonTower");
+            if (cannonTowerPrefab == null) cannonTowerPrefab = Resources.Load<GameObject>("Towers/CannonTower");
+            if (cannonTowerPrefab == null) cannonTowerPrefab = Resources.Load<GameObject>("Prefabs/tower/CannonTower");
+            if (cannonTowerPrefab == null) cannonTowerPrefab = Resources.Load<GameObject>("Prefabs/Tower/CannonTower");
+            if (cannonTowerPrefab == null) cannonTowerPrefab = Resources.Load<GameObject>("Prefabs/Towers/CannonTower");
+            if (cannonTowerPrefab == null) cannonTowerPrefab = Resources.Load<GameObject>("CannonTower");
+        }
             
         if (arrowTowerPrefab == null)
+        {
             arrowTowerPrefab = Resources.Load<GameObject>("tower/ArrowTower");
+            if (arrowTowerPrefab == null) arrowTowerPrefab = Resources.Load<GameObject>("Tower/ArrowTower");
+            if (arrowTowerPrefab == null) arrowTowerPrefab = Resources.Load<GameObject>("Towers/ArrowTower");
+            if (arrowTowerPrefab == null) arrowTowerPrefab = Resources.Load<GameObject>("Prefabs/tower/ArrowTower");
+            if (arrowTowerPrefab == null) arrowTowerPrefab = Resources.Load<GameObject>("Prefabs/Tower/ArrowTower");
+            if (arrowTowerPrefab == null) arrowTowerPrefab = Resources.Load<GameObject>("Prefabs/Towers/ArrowTower");
+            if (arrowTowerPrefab == null) arrowTowerPrefab = Resources.Load<GameObject>("ArrowTower");
+        }
             
         if (laserTowerPrefab == null)
+        {
             laserTowerPrefab = Resources.Load<GameObject>("tower/LaserTower");
+            if (laserTowerPrefab == null) laserTowerPrefab = Resources.Load<GameObject>("Tower/LaserTower");
+            if (laserTowerPrefab == null) laserTowerPrefab = Resources.Load<GameObject>("Towers/LaserTower");
+            if (laserTowerPrefab == null) laserTowerPrefab = Resources.Load<GameObject>("Prefabs/tower/LaserTower");
+            if (laserTowerPrefab == null) laserTowerPrefab = Resources.Load<GameObject>("Prefabs/Tower/LaserTower");
+            if (laserTowerPrefab == null) laserTowerPrefab = Resources.Load<GameObject>("Prefabs/Towers/LaserTower");
+            if (laserTowerPrefab == null) laserTowerPrefab = Resources.Load<GameObject>("LaserTower");
+        }
             
-        // 输出预设体加载结果
-        Debug.Log($"CannonTower预设体加载状态: {(cannonTowerPrefab != null ? "成功" : "失败")}");
-        Debug.Log($"ArrowTower预设体加载状态: {(arrowTowerPrefab != null ? "成功" : "失败")}");
-        Debug.Log($"LaserTower预设体加载状态: {(laserTowerPrefab != null ? "成功" : "失败")}");
+        // Output prefab loading results
+        Debug.Log($"CannonTower prefab loading status: {(cannonTowerPrefab != null ? "Success" : "Failed")}");
+        Debug.Log($"ArrowTower prefab loading status: {(arrowTowerPrefab != null ? "Success" : "Failed")}");
+        Debug.Log($"LaserTower prefab loading status: {(laserTowerPrefab != null ? "Success" : "Failed")}");
         
-        // 检查是否成功加载
+        // Check if successfully loaded
         bool allPrefabsLoaded = cannonTowerPrefab != null && arrowTowerPrefab != null && laserTowerPrefab != null;
         
         if (!allPrefabsLoaded)
         {
-            Debug.LogWarning("预制体加载失败，将使用运行时构建的预制体");
+            Debug.LogWarning("Prefab loading failed, will attempt to create Resources/tower directory and generate prefabs");
             
-            // 检查场景中是否有SimpleTowerBuilder
+            // Check if there's a SimpleTowerBuilder in the scene
             SimpleTowerBuilder builder = FindObjectOfType<SimpleTowerBuilder>();
             if (builder == null)
             {
-                Debug.Log("创建SimpleTowerBuilder");
+                Debug.Log("Creating SimpleTowerBuilder");
                 GameObject builderObj = new GameObject("SimpleTowerBuilder");
                 builder = builderObj.AddComponent<SimpleTowerBuilder>();
                 builder.saveToResources = true;
             }
             
-            // 等待一帧，让SimpleTowerBuilder初始化
+            // Ensure SimpleTowerBuilder knows the correct save path
+            if (builder != null)
+            {
+                builder.resourcePath = "tower";
+                Debug.Log("Set SimpleTowerBuilder's resourcePath to 'tower'");
+            }
+            
+            // Wait a frame to let SimpleTowerBuilder initialize
             Invoke("LoadBuiltPrefabs", 0.2f);
         }
         
-        // 强制使用预设放置点
+        // Force use of preset placement points
         usePresetPlacementPoints = true;
     }
     
-    // 从Builder创建的预制体中加载
+    // Load from prefabs created by Builder
     void LoadBuiltPrefabs()
     {
-        Debug.Log("尝试从Resources/tower文件夹加载塔预制体...");
+        Debug.Log("Attempting to load tower prefabs from Resources/tower folder...");
         
+        // Try to find Resources directory structure again
+        Debug.Log("Checking Resources directory structure again...");
+        Object[] allResources = Resources.LoadAll("");
+        foreach (Object res in allResources)
+        {
+            Debug.Log($"Resource: {res.name} (Type: {res.GetType().Name})");
+        }
+        
+        // Check if tower directory exists
+        Object[] towerResources = Resources.LoadAll("tower");
+        Debug.Log($"Number of resources in tower directory: {towerResources.Length}");
+        foreach (Object res in towerResources)
+        {
+            Debug.Log($"Tower Resource: {res.name} (Type: {res.GetType().Name})");
+        }
+        
+        // Try to load from different paths
         if (cannonTowerPrefab == null)
+        {
             cannonTowerPrefab = Resources.Load<GameObject>("tower/CannonTower");
+            if (cannonTowerPrefab == null) cannonTowerPrefab = Resources.Load<GameObject>("Tower/CannonTower");
+            if (cannonTowerPrefab == null) cannonTowerPrefab = Resources.Load<GameObject>("Towers/CannonTower");
+            if (cannonTowerPrefab == null) cannonTowerPrefab = Resources.Load<GameObject>("CannonTower");
+        }
         
         if (arrowTowerPrefab == null)
+        {
             arrowTowerPrefab = Resources.Load<GameObject>("tower/ArrowTower");
+            if (arrowTowerPrefab == null) arrowTowerPrefab = Resources.Load<GameObject>("Tower/ArrowTower");
+            if (arrowTowerPrefab == null) arrowTowerPrefab = Resources.Load<GameObject>("Towers/ArrowTower");
+            if (arrowTowerPrefab == null) arrowTowerPrefab = Resources.Load<GameObject>("ArrowTower");
+        }
         
         if (laserTowerPrefab == null)
+        {
             laserTowerPrefab = Resources.Load<GameObject>("tower/LaserTower");
+            if (laserTowerPrefab == null) laserTowerPrefab = Resources.Load<GameObject>("Tower/LaserTower");
+            if (laserTowerPrefab == null) laserTowerPrefab = Resources.Load<GameObject>("Towers/LaserTower");
+            if (laserTowerPrefab == null) laserTowerPrefab = Resources.Load<GameObject>("LaserTower");
+        }
         
-        // 输出每个预设体的加载状态
-        Debug.Log($"重试加载 - CannonTower预设体: {(cannonTowerPrefab != null ? "成功" : "失败")}");
-        Debug.Log($"重试加载 - ArrowTower预设体: {(arrowTowerPrefab != null ? "成功" : "失败")}");
-        Debug.Log($"重试加载 - LaserTower预设体: {(laserTowerPrefab != null ? "成功" : "失败")}");
+        // Output loading status of each prefab
+        Debug.Log($"Retry loading - CannonTower prefab: {(cannonTowerPrefab != null ? "Success" : "Failed")}");
+        Debug.Log($"Retry loading - ArrowTower prefab: {(arrowTowerPrefab != null ? "Success" : "Failed")}");
+        Debug.Log($"Retry loading - LaserTower prefab: {(laserTowerPrefab != null ? "Success" : "Failed")}");
         
         if (cannonTowerPrefab == null || arrowTowerPrefab == null || laserTowerPrefab == null)
         {
-            Debug.LogError("无法加载塔预制体，塔防系统将无法正常工作！");
-            Debug.LogError("请确保预制体位于Resources/tower文件夹下，且命名为CannonTower、ArrowTower和LaserTower");
+            Debug.LogError("Unable to load tower prefabs, will attempt to create temporary prefabs");
+            
+            // Create temporary prefabs
+            CreateTemporaryTowerPrefabs();
         }
         else
         {
-            Debug.Log("塔预制体加载完成！");
+            Debug.Log("Tower prefabs loaded successfully!");
         }
+    }
+    
+    // Create temporary prefabs, for emergency situations
+    void CreateTemporaryTowerPrefabs()
+    {
+        Debug.Log("Creating temporary tower prefabs...");
+        
+        // If prefabs are not loaded, create temporary objects
+        if (cannonTowerPrefab == null)
+        {
+            GameObject tempCannonTower = new GameObject("CannonTower");
+            tempCannonTower.AddComponent<CannonTower>();
+            tempCannonTower.AddComponent<SpriteRenderer>();
+            cannonTowerPrefab = tempCannonTower;
+            
+            // Set not to destroy
+            DontDestroyOnLoad(tempCannonTower);
+            tempCannonTower.SetActive(false);
+        }
+        
+        if (arrowTowerPrefab == null)
+        {
+            GameObject tempArrowTower = new GameObject("ArrowTower");
+            tempArrowTower.AddComponent<ArrowTower>();
+            tempArrowTower.AddComponent<SpriteRenderer>();
+            arrowTowerPrefab = tempArrowTower;
+            
+            // Set not to destroy
+            DontDestroyOnLoad(tempArrowTower);
+            tempArrowTower.SetActive(false);
+        }
+        
+        if (laserTowerPrefab == null)
+        {
+            GameObject tempLaserTower = new GameObject("LaserTower");
+            tempLaserTower.AddComponent<LaserTower>();
+            tempLaserTower.AddComponent<SpriteRenderer>();
+            laserTowerPrefab = tempLaserTower;
+            
+            // Set not to destroy
+            DontDestroyOnLoad(tempLaserTower);
+            tempLaserTower.SetActive(false);
+        }
+        
+        Debug.Log("Temporary tower prefabs created");
     }
     
     void CreateTowerPreview()
@@ -186,10 +307,10 @@ public class TowerManager : Singleton<TowerManager>
         towerPreview = new GameObject("TowerPreview");
         previewRenderer = towerPreview.AddComponent<SpriteRenderer>();
         
-        // 根据当前选择的塔类型设置预览精灵
+        // Set preview sprite based on currently selected tower type
         UpdatePreviewSprite();
         
-        // 设置半透明
+        // Set semi-transparent
         Color color = previewRenderer.color;
         color.a = 0.5f;
         previewRenderer.color = color;
@@ -213,17 +334,19 @@ public class TowerManager : Singleton<TowerManager>
     
     void UpdateTowerPreview()
     {
-        // 如果有选中的放置点，预览固定在该点上
+        // If there's a selected placement point, preview fixed at that point
         if (usePresetPlacementPoints && selectedPlacementPoint != null)
         {
+            Debug.Log("UpdateTowerPreview: Selected placement point" + selectedPlacementPoint.transform.position);
             if (towerPreview != null)
             {
                 towerPreview.transform.position = selectedPlacementPoint.transform.position;
                 
-                // 检查是否可以放置塔
+                // Check if tower can be placed at point
                 bool canPlace = CanPlaceTowerAtPoint(selectedPlacementPoint);
+                Debug.Log("UpdateTowerPreview: Whether tower can be placed" + canPlace);
                 Color color = canPlace ? validPlacementColor : invalidPlacementColor;
-                color.a = 0.5f; // 半透明
+                color.a = 0.5f; // Semi-transparent
                 if (previewRenderer != null)
                 {
                     previewRenderer.color = color;
@@ -232,17 +355,17 @@ public class TowerManager : Singleton<TowerManager>
             return;
         }
 
-        // 获取鼠标位置
+        // Get mouse position
         Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mouseWorldPos.z = 0;
         
         Vector3Int cellPos = Vector3Int.zero;
         Vector3 cellWorldPos = Vector3.zero;
         
-        // 使用预设放置点模式
+        // Use preset placement point mode
         if (usePresetPlacementPoints)
         {
-            // 使用平面进行射线检测，获取世界坐标
+            // Use plane for ray detection, get world coordinates
             Plane plane = new Plane(Vector3.forward, Vector3.zero);
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             
@@ -251,7 +374,7 @@ public class TowerManager : Singleton<TowerManager>
                 mouseWorldPos = ray.GetPoint(distance);
             }
             
-            // 尝试从TowerPlacementManager获取最近的放置点
+            // Try to get nearest placement point from TowerPlacementManager
             TowerPlacementManager placementManager = TowerPlacementManager.Instance;
             if (placementManager != null)
             {
@@ -261,17 +384,17 @@ public class TowerManager : Singleton<TowerManager>
                     cellPos = nearestPoint.gridPosition;
                     cellWorldPos = nearestPoint.transform.position;
                     
-                    // 更新预览位置
+                    // Update preview position
                     if (towerPreview != null)
                     {
                         towerPreview.transform.position = cellWorldPos;
                         
-                        // 检查是否可以放置塔
+                        // Check if tower can be placed
                         bool canPlace = CanPlaceTower(cellPos);
                         
-                        // 更新预览颜色
+                        // Update preview color
                         Color previewColor = canPlace ? validPlacementColor : invalidPlacementColor;
-                        previewColor.a = 0.5f; // 半透明
+                        previewColor.a = 0.5f; // Semi-transparent
                         if (previewRenderer != null)
                         {
                             previewRenderer.color = previewColor;
@@ -281,32 +404,32 @@ public class TowerManager : Singleton<TowerManager>
                 }
                 else
                 {
-                    // 如果没有找到可用的放置点，隐藏预览
+                    // If no usable placement point found, hide preview
                     if (towerPreview != null)
                     {
-                        towerPreview.transform.position = new Vector3(-1000, -1000, -1000); // 移到视野外
+                        towerPreview.transform.position = new Vector3(-1000, -1000, -1000); // Move out of sight
                     }
                     return;
                 }
             }
             else
             {
-                Debug.LogWarning("未找到TowerPlacementManager实例");
+                Debug.LogWarning("TowerPlacementManager instance not found");
                 return;
             }
         }
-        // 使用Tilemap模式 - 保留但不使用
+        // Use Tilemap mode - keep but don't use
         else if (placementTilemap != null)
         {
-            // 将世界坐标转换为格子坐标
+            // Convert world coordinates to cell coordinates
             cellPos = placementTilemap.WorldToCell(mouseWorldPos);
         
-            // 将格子坐标转换回世界坐标（居中）
+            // Convert cell coordinates back to world coordinates (centered)
             cellWorldPos = placementTilemap.GetCellCenterWorld(cellPos);
         }
         else
         {
-            // 如果没有Tilemap，使用鼠标位置的整数部分作为网格位置
+            // If no Tilemap, use integer part of mouse position as grid position
             cellPos = new Vector3Int(
                 Mathf.RoundToInt(mouseWorldPos.x),
                 Mathf.RoundToInt(mouseWorldPos.y),
@@ -315,30 +438,47 @@ public class TowerManager : Singleton<TowerManager>
             cellWorldPos = new Vector3(cellPos.x, cellPos.y, cellPos.z);
         }
         
-        // 更新预览位置
+        // Update preview position
         towerPreview.transform.position = cellWorldPos;
         
-        // 检查是否可以放置塔
+        // Check if tower can be placed
         bool canBuildTower = CanPlaceTower(cellPos);
         
-        // 更新预览颜色
+        // Update preview color
         Color towerPreviewColor = canBuildTower ? validPlacementColor : invalidPlacementColor;
-        towerPreviewColor.a = 0.5f; // 半透明
+        towerPreviewColor.a = 0.5f; // Semi-transparent
         previewRenderer.color = towerPreviewColor;
+    }
+    
+    private void CheckMouseClick()
+    {
+        // Click on UI is ignored
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            return;
+
+        // Original mouse left click detection logic
+        if (Input.GetMouseButtonDown(0))
+        {
+            HandleMouseClick();
+        }
     }
     
     void HandleMouseClick()
     {
-        // 获取鼠标位置
+        // If click occurs on UI, it's directly ignored
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            return;
+        
+        // Get mouse position
         Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mouseWorldPos.z = 0;
         
         Vector3Int cellPos;
         
-        // 使用预设放置点模式
+        // Use preset placement point mode
         if (usePresetPlacementPoints)
         {
-            // 使用平面进行射线检测，获取世界坐标
+            // Use plane for ray detection, get world coordinates
             Plane plane = new Plane(Vector3.forward, Vector3.zero);
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             
@@ -347,14 +487,14 @@ public class TowerManager : Singleton<TowerManager>
                 mouseWorldPos = ray.GetPoint(distance);
             }
             
-            // 计算网格位置 - 为了与builtTowers字典的键匹配
+            // Calculate grid position - to match keys in builtTowers dictionary
             if (placementTilemap != null)
             {
                 cellPos = placementTilemap.WorldToCell(mouseWorldPos);
             }
             else
             {
-                // 尝试从TowerPlacementManager获取最近的放置点
+                // Try to get nearest placement point from TowerPlacementManager
                 TowerPlacementManager placementManager = TowerPlacementManager.Instance;
                 if (placementManager != null)
                 {
@@ -365,12 +505,12 @@ public class TowerManager : Singleton<TowerManager>
                     }
                     else if (placementManager.placementPoints.Count > 0)
                     {
-                        // 使用第一个放置点的网格位置作为参考
+                        // Use grid position of first placement point as reference
                         cellPos = placementManager.placementPoints[0].gridPosition;
                     }
                     else
                     {
-                        // 如果没有任何放置点，使用鼠标位置的整数部分作为网格位置
+                        // If no placement points, use integer part of mouse position as grid position
                         cellPos = new Vector3Int(
                             Mathf.RoundToInt(mouseWorldPos.x),
                             Mathf.RoundToInt(mouseWorldPos.y),
@@ -380,7 +520,7 @@ public class TowerManager : Singleton<TowerManager>
                 }
                 else
                 {
-                    // 如果没有TowerPlacementManager，使用鼠标位置的整数部分
+                    // If no TowerPlacementManager, use integer part of mouse position
                     cellPos = new Vector3Int(
                         Mathf.RoundToInt(mouseWorldPos.x),
                         Mathf.RoundToInt(mouseWorldPos.y),
@@ -392,13 +532,13 @@ public class TowerManager : Singleton<TowerManager>
             HandlePresetPlacementClick(mouseWorldPos, cellPos);
             return;
         }
-        // 始终使用预设放置点模式，不再使用Tilemap模式
+        // Always use preset placement point mode, no longer use Tilemap mode
         else
         {
-            // 强制使用预设放置点
+            // Force use of preset placement points
             usePresetPlacementPoints = true;
             
-            // 使用平面进行射线检测，获取世界坐标
+            // Use plane for ray detection, get world coordinates
             Plane plane = new Plane(Vector3.forward, Vector3.zero);
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             
@@ -407,7 +547,7 @@ public class TowerManager : Singleton<TowerManager>
                 mouseWorldPos = ray.GetPoint(distance);
             }
             
-            // 尝试从TowerPlacementManager获取最近的放置点
+            // Try to get nearest placement point from TowerPlacementManager
             TowerPlacementManager placementManager = TowerPlacementManager.Instance;
             if (placementManager != null)
             {
@@ -420,36 +560,36 @@ public class TowerManager : Singleton<TowerManager>
                 }
                 else
                 {
-                    Debug.LogWarning("未找到可用的放置点");
+                    Debug.LogWarning("No usable placement point found");
                 }
             }
             else
             {
-                Debug.LogWarning("未找到TowerPlacementManager实例");
+                Debug.LogWarning("TowerPlacementManager instance not found");
             }
             
-            // 如果无法找到放置点，直接返回
+            // If placement point cannot be found, return directly
             return;
         }
     }
     
-    // 处理预设放置点的点击
+    // Handle click on preset placement point
     private void HandlePresetPlacementClick(Vector3 mouseWorldPos, Vector3Int cellPos)
     {
         TowerPlacementManager placementManager = TowerPlacementManager.Instance;
         if (placementManager == null) return;
         
-        // 查找最近的放置点
+        // Find nearest placement point
         TowerPlacementPoint nearestPoint = placementManager.GetNearestAvailablePoint(mouseWorldPos);
         
-        // 添加空检查，如果没有找到可用的放置点
+        // Add empty check, if no usable placement point found
         if (nearestPoint == null)
         {
-            Debug.LogWarning("未找到可用的放置点");
-            // 先检查是否点击了已有的塔
+            Debug.LogWarning("No usable placement point found");
+            // First check if clicked on existing tower
             if (builtTowers.ContainsKey(cellPos))
             {
-                // 已有塔，选中它
+                // Existing tower, select it
                 SelectTower(builtTowers[cellPos]);
             }
             return;
@@ -457,78 +597,80 @@ public class TowerManager : Singleton<TowerManager>
         
         float clickDistance = Vector3.Distance(mouseWorldPos, nearestPoint.transform.position);
         
-        // 先检查是否点击了已有的塔
+        // First check if clicked on existing tower
         if (builtTowers.ContainsKey(cellPos))
         {
-            // 已有塔，选中它
+            // Existing tower, select it
             SelectTower(builtTowers[cellPos]);
             return;
         }
         
-        // 如果点击了足够近的可用放置点
+        // If clicked on sufficiently close usable placement point
         if (clickDistance < 1.0f)
         {
-            // 选中该放置点
+            // Select this placement point
             SelectPlacementPoint(nearestPoint);
             return;
         }
         else if (selectedTower != null)
         {
-            // 如果已经选中了一个塔，并且点击了空地，取消选择
+            // If already selected a tower and clicked on empty land, cancel selection
             DeselectTower();
             return;
         }
         else if (selectedPlacementPoint != null)
         {
-            // 如果已经选中了一个放置点，并且点击了其他地方，取消选择
+            // If already selected a placement point and clicked on other place, cancel selection
             DeselectPlacementPoint();
             return;
         }
     }
     
-    // 选择放置点
+    // Select placement point
     public void SelectPlacementPoint(TowerPlacementPoint point)
     {
+        Debug.Log($"[TowerManager] SelectPlacementPoint -> {point.pointID} at {point.transform.position}");
         if (selectedPlacementPoint != point)
         {
-            // 取消之前的选择
+            // Cancel previous selection
             DeselectPlacementPoint();
             
             selectedPlacementPoint = point;
             
-            // 高亮显示该放置点
-            // TODO: 实现高亮效果
+            // Highlight this placement point
+            // TODO: Implement highlight effect
             
-            // 显示建造面板
+            // Show build panel
             ShowBuildPanel();
             
-            // 更新预览位置到放置点
+            // Update preview position to placement point
             if (towerPreview != null)
             {
                 towerPreview.transform.position = point.transform.position;
                 
-                // 检查是否可以放置塔
+                // Check if tower can be placed at point
                 bool canPlace = CanPlaceTowerAtPoint(point);
                 Color color = canPlace ? validPlacementColor : invalidPlacementColor;
-                color.a = 0.5f; // 半透明
+                color.a = 0.5f; // Semi-transparent
                 previewRenderer.color = color;
             }
         }
     }
     
-    // 取消选择放置点
+    // Cancel selection of placement point
     public void DeselectPlacementPoint()
     {
+        Debug.Log("[TowerManager] DeselectPlacementPoint");
         if (selectedPlacementPoint != null)
         {
-            // 取消高亮效果
-            // TODO: 移除高亮效果
+            // Cancel highlight effect
+            // TODO: Remove highlight effect
             
             selectedPlacementPoint = null;
         }
     }
     
-    // 检查是否可以在放置点上放置塔
+    // Check if tower can be placed at placement point
     public bool CanPlaceTowerAtPoint(TowerPlacementPoint point)
     {
         if (point == null || point.isOccupied || !point.isEnabled)
@@ -536,116 +678,157 @@ public class TowerManager : Singleton<TowerManager>
             return false;
         }
         
-        // 特别处理ObstaclePlacementPoint
+        // Special handling for ObstaclePlacementPoint
         if (point is ObstaclePlacementPoint)
         {
             ObstaclePlacementPoint obstaclePoint = (ObstaclePlacementPoint)point;
-            ObstacleManager obstacleManager = ObstacleManager.Instance;
+            Vector3Int obstaclePos = obstaclePoint.obstaclePosition;
             
-            // 确保障碍物已被清除
+            // Check enhanced obstacle system
+            EnhancedObstacleManager enhancedObstacleManager = FindObjectOfType<EnhancedObstacleManager>();
+            if (enhancedObstacleManager != null)
+            {
+                if (enhancedObstacleManager.IsObstacle(obstaclePos) && !enhancedObstacleManager.IsClearedObstacle(obstaclePos))
+                {
+                    Debug.Log($"[TowerManager] Obstacle at position {obstaclePos} not cleared, cannot build tower");
+                    return false;
+                }
+            }
+            
+            // Check old obstacle system
+            ObstacleManager obstacleManager = ObstacleManager.Instance;
             if (obstacleManager != null && !obstacleManager.IsClearedObstacle(obstaclePoint.obstaclePosition))
             {
+                Debug.Log($"[TowerManager] Obstacle at position {obstaclePos} not cleared, cannot build tower");
                 return false;
             }
         }
         
-        // 检查是否有足够的金币
+        // Check if there's any un-cleared obstacle at the placement point's location
+        Vector3Int gridPos = point.gridPosition;
+        
+        // Check enhanced obstacle manager
+        EnhancedObstacleManager enhancedObstacleMgr = FindObjectOfType<EnhancedObstacleManager>();
+        if (enhancedObstacleMgr != null && !enhancedObstacleMgr.CanPlaceAtPosition(gridPos))
+        {
+            Debug.Log($"[TowerManager] Position {gridPos} has un-cleared obstacle, cannot place tower");
+            return false;
+        }
+        
+        // Check old obstacle manager
+        ObstacleManager obstacleMgr = ObstacleManager.Instance;
+        if (obstacleMgr != null && !obstacleMgr.CanPlaceAtPosition(gridPos))
+        {
+            Debug.Log($"[TowerManager] Position {gridPos} has un-cleared obstacle, cannot place tower");
+            return false;
+        }
+        
+        // Check if there's enough gold
         GameObject prefab = GetTowerPrefab(selectedTowerType);
         if (prefab != null)
         {
             BaseTower towerScript = prefab.GetComponent<BaseTower>();
-            if (towerScript != null && currentGold < towerScript.buildCost)
+            if (towerScript != null && currentGold < towerScript.cost)
             {
-                return false; // 金币不足
+                return false; // Not enough gold
             }
         }
         
         return true;
     }
     
-    // 在选中的放置点上建造塔
+    // Build tower at selected placement point
     public void BuildTowerOnSelectedPoint()
     {
+        Debug.Log("BuildTowerOnSelectedPoint called");
+        
         if (selectedPlacementPoint == null)
         {
-            Debug.LogWarning("未选中放置点，无法建造塔！");
+            Debug.LogWarning("No selected placement point, cannot build tower!");
             return;
         }
+        
+        Debug.Log("BuildTowerOnSelectedPoint: Selected placement point" + selectedPlacementPoint.pointID + " at " + selectedPlacementPoint.transform.position);
+        Debug.Log("BuildTowerOnSelectedPoint: Starting to build tower");
         
         if (!CanPlaceTowerAtPoint(selectedPlacementPoint))
         {
-            Debug.LogWarning("在当前选中的放置点上无法建造塔！");
+            Debug.LogWarning("Cannot build tower at current selected placement point!");
             return;
         }
         
-        // 获取当前选中塔的预制体
+        // Get current selected tower prefab
         GameObject prefab = GetTowerPrefab(selectedTowerType);
         if (prefab == null)
         {
-            Debug.LogError($"塔预制体为null: {selectedTowerType}");
+            Debug.LogError($"Tower prefab is null: {selectedTowerType}");
             return;
         }
         
-        // 检查金币是否足够
+        // Check if there's enough gold
         BaseTower towerScript = prefab.GetComponent<BaseTower>();
         if (towerScript == null)
         {
-            Debug.LogError("塔预制体缺少BaseTower组件！");
+            Debug.LogError("Tower prefab missing BaseTower component!");
             return;
         }
         
-        // 检查金币
+        // Check gold
         bool hasEnoughGold = false;
-        int buildCost = towerScript.buildCost;
+        int cost = towerScript.cost;
         
-        // 优先使用CoinManager扣除金币
+        // Use CoinManager to deduct gold first
         if (CoinManager.Instance != null)
         {
-            hasEnoughGold = CoinManager.Instance.TrySpendCoins(buildCost);
+            hasEnoughGold = CoinManager.Instance.TrySpendCoins(cost);
         }
         else
         {
-            hasEnoughGold = currentGold >= buildCost;
+            hasEnoughGold = currentGold >= cost;
         }
         
         if (!hasEnoughGold)
         {
-            ShowNotification("金币不足！需要 " + buildCost + " 金币");
-            Debug.LogWarning("金币不足，无法建造塔！");
+            ShowNotification("Not enough gold! Need " + cost + " gold");
+            Debug.LogWarning("Not enough gold, cannot build tower!");
             return;
         }
         
-        // 创建塔，确保塔放置在放置点的坐标上
-        Vector3 towerPosition = selectedPlacementPoint.transform.position;
+        // Get tower's offset (global offset + tower-specific offset)
+        Vector3 towerOffset = towerPositionOffset;
+        if (towerScript != null) {
+            towerOffset += towerScript.positionOffset;
+        }
+        Vector3 towerPosition = selectedPlacementPoint.transform.position + towerOffset;
         GameObject tower = Instantiate(prefab, towerPosition, Quaternion.identity);
-        tower.SetActive(true); // 确保塔是激活的
+        tower.SetActive(true); // Ensure tower is active
         
-        // 获取塔脚本
+        // Get tower script
         BaseTower towerComponent = tower.GetComponent<BaseTower>();
         
         if (towerComponent != null)
         {
-            // 扣除金币
+            // Deduct gold
             if (CoinManager.Instance != null)
             {
-                // CoinManager已经在前面的TrySpendCoins中扣除了金币
+                // CoinManager has already deducted gold in TrySpendCoins
             }
             else
             {
-                currentGold -= buildCost;
+                currentGold -= cost;
                 UpdateGoldDisplay();
             }
             
-            // 记录已建造的塔 (使用格子坐标)
+            // Record built tower (using grid coordinates)
             Vector3Int gridPosition = selectedPlacementPoint.gridPosition;
             builtTowers[gridPosition] = towerComponent;
             
-            // 将放置点设为已占用
+            // Set placement point as occupied
             selectedPlacementPoint.OccupyPoint(towerComponent);
             
-            Debug.Log($"建造{towerComponent.towerName}，花费{buildCost}金币");
+            Debug.Log($"Built {towerComponent.towerName}, cost {cost} gold");
             
-            // 选中新建的塔
+            // Select newly built tower
             SelectTower(towerComponent);
             DeselectPlacementPoint();
         }
@@ -653,29 +836,29 @@ public class TowerManager : Singleton<TowerManager>
     
     void DeselectTower()
     {
-        // 隐藏范围指示器
+        // Hide range indicator
         if (currentRangeIndicator != null)
         {
             Destroy(currentRangeIndicator);
             currentRangeIndicator = null;
         }
         
-        // 清除选中状态
+        // Clear selected state
         selectedTower = null;
         
-        // 显示建造面板
+        // Show build panel
         ShowBuildPanel();
     }
     
     public bool CanPlaceTower(Vector3Int cellPos)
     {
-        // 检查该位置是否已经有塔
+        // Check if there's already a tower at this position
         if (builtTowers.ContainsKey(cellPos))
         {
             return false;
         }
         
-        // 如果使用预设放置点，则通过TowerPlacementManager判断
+        // If using preset placement points, check through TowerPlacementManager
         if (usePresetPlacementPoints)
         {
             TowerPlacementManager placementManager = TowerPlacementManager.Instance;
@@ -685,10 +868,10 @@ public class TowerManager : Singleton<TowerManager>
             }
             return false;
         }
-        // 如果不使用预设放置点，则通过Tilemap判断
+        // If not using preset placement points, check through Tilemap
         else if (placementTilemap != null)
         {
-            // 检查是否是有效的放置位置（有对应的tile）
+            // Check if it's a valid placement position (has corresponding tile)
             if (!placementTilemap.HasTile(cellPos))
             {
                 return false;
@@ -696,10 +879,10 @@ public class TowerManager : Singleton<TowerManager>
         }
         else
         {
-            // 强制使用预设放置点模式
+            // Force use of preset placement point mode
             usePresetPlacementPoints = true;
             
-            // 重试使用预设放置点
+            // Retry using preset placement points
             TowerPlacementManager placementManager = TowerPlacementManager.Instance;
             if (placementManager != null)
             {
@@ -708,25 +891,33 @@ public class TowerManager : Singleton<TowerManager>
             return false;
         }
         
-        // 检查位置是否有障碍物且未清除
-        ObstacleManager obstacleManager = ObstacleManager.Instance;
-        if (obstacleManager != null && !obstacleManager.CanPlaceAtPosition(cellPos))
+        // Check if there's any obstacle at the position and not cleared
+        // First check enhanced obstacle manager
+        EnhancedObstacleManager enhancedObstacleMgr = FindObjectOfType<EnhancedObstacleManager>();
+        if (enhancedObstacleMgr != null && !enhancedObstacleMgr.CanPlaceAtPosition(cellPos))
         {
-            return false;  // 有障碍物，不能放置
+            return false;  // There's obstacle, cannot place
         }
         
-        // 检查是否有足够的金币
+        // Then check old obstacle manager
+        ObstacleManager obstacleMgr = ObstacleManager.Instance;
+        if (obstacleMgr != null && !obstacleMgr.CanPlaceAtPosition(cellPos))
+        {
+            return false;  // There's obstacle, cannot place
+        }
+        
+        // Check if there's enough gold
         GameObject prefab = GetTowerPrefab(selectedTowerType);
         if (prefab != null)
         {
             BaseTower towerComponent = prefab.GetComponent<BaseTower>();
-            if (towerComponent != null && towerComponent.buildCost > currentGold)
+            if (towerComponent != null && towerComponent.cost > currentGold)
             {
-                return false;  // 金币不足
+                return false;  // Not enough gold
             }
         }
         
-        return true;  // 所有检查都通过
+        return true;  // All checks passed
     }
     
     void BuildTower(Vector3Int cellPos)
@@ -734,129 +925,133 @@ public class TowerManager : Singleton<TowerManager>
         GameObject prefab = GetTowerPrefab(selectedTowerType);
         if (prefab == null)
         {
-            Debug.LogError("未找到塔预制体！");
+            Debug.LogError("Tower prefab not found!");
             return;
         }
         
-        // 获取塔的基本组件，检查金币是否足够
+        // Get tower's basic components, check if there's enough gold
         BaseTower towerPrefabComponent = prefab.GetComponent<BaseTower>();
         if (towerPrefabComponent == null)
         {
-            Debug.LogError("塔预制体缺少BaseTower组件！");
+            Debug.LogError("Tower prefab missing BaseTower component!");
             return;
         }
         
-        // 先检查是否有足够的金币
+        // First check if there's enough gold
         bool hasEnoughGold = false;
-        int buildCost = towerPrefabComponent.buildCost;
+        int cost = towerPrefabComponent.cost;
         
-        // 优先使用CoinManager扣除金币
+        // Use CoinManager to deduct gold first
         if (CoinManager.Instance != null)
         {
-            hasEnoughGold = CoinManager.Instance.TrySpendCoins(buildCost);
+            hasEnoughGold = CoinManager.Instance.TrySpendCoins(cost);
         }
         else
         {
-            hasEnoughGold = currentGold >= buildCost;
+            hasEnoughGold = currentGold >= cost;
         }
         
         if (!hasEnoughGold)
         {
-            ShowNotification("金币不足！需要 " + buildCost + " 金币");
-            Debug.LogWarning("金币不足，无法建造塔！");
+            ShowNotification("Not enough gold! Need " + cost + " gold");
+            Debug.LogWarning("Not enough gold, cannot build tower!");
             return;
         }
         
-        // 获取放置点
+        // Get placement point
         TowerPlacementManager placementManager = TowerPlacementManager.Instance;
         if (placementManager == null)
         {
-            Debug.LogError("未找到TowerPlacementManager，无法建造塔！");
+            Debug.LogError("TowerPlacementManager not found, cannot build tower!");
             return;
         }
         
         TowerPlacementPoint point = placementManager.GetPlacementPoint(cellPos);
         if (point == null)
         {
-            Debug.LogWarning($"未找到放置点，无法建造塔！位置: {cellPos}");
+            Debug.LogWarning($"Placement point not found, cannot build tower! Position: {cellPos}");
             return;
         }
         
-        // 检查放置点是否已被占用
+        // Check if placement point is already occupied
         if (point.isOccupied)
         {
-            ShowNotification("该位置已被占用！");
+            ShowNotification("This position is occupied!");
             return;
         }
         
-        // 创建塔，确保塔放置在放置点的坐标上
-        Vector3 towerPosition = point.transform.position;
+        // Get tower's offset (global offset + tower-specific offset)
+        Vector3 towerOffset = towerPositionOffset;
+        if (towerPrefabComponent != null) {
+            towerOffset += towerPrefabComponent.positionOffset;
+        }
+        Vector3 towerPosition = point.transform.position + towerOffset;
         GameObject tower = Instantiate(prefab, towerPosition, Quaternion.identity);
-        tower.SetActive(true); // 确保塔是激活的
+        tower.SetActive(true); // Ensure tower is active
         
-        // 获取塔脚本
+        // Get tower script
         BaseTower towerComponent = tower.GetComponent<BaseTower>();
         
         if (towerComponent != null)
         {
-            // 扣除金币
+            // Deduct gold
             if (CoinManager.Instance != null)
             {
-                // CoinManager已经在前面的TrySpendCoins中扣除了金币
+                // CoinManager has already deducted gold in TrySpendCoins
             }
             else
             {
-                currentGold -= buildCost;
+                currentGold -= cost;
                 UpdateGoldDisplay();
             }
             
-            // 记录已建造的塔
+            // Record built tower
             builtTowers[cellPos] = towerComponent;
             
-            // 将放置点设为已占用
+            // Set placement point as occupied
             point.OccupyPoint(towerComponent);
             
-            Debug.Log($"建造{towerComponent.towerName}，花费{buildCost}金币");
+            Debug.Log($"Built {towerComponent.towerName}, cost {cost} gold");
             
-            // 选中新建的塔
+            // Select newly built tower
             SelectTower(towerComponent);
         }
     }
     
     void SelectTower(BaseTower tower)
     {
-        // 取消之前的选择
+        // Cancel previous selection
         if (selectedTower != null && selectedTower != tower)
         {
             DeselectTower();
         }
         
         selectedTower = tower;
-        Debug.Log($"已选中{tower.towerName}，等级：{tower.level}/{tower.maxLevel}");
+        Debug.Log($"Selected {tower.towerName}, level: {tower.level}/{tower.maxLevel}");
         
-        // 显示塔的范围
+        // Show tower range
         if (showRangeOnSelect)
         {
             ShowTowerRange(tower);
         }
         
-        // 显示升级面板
+        // Show upgrade panel
         ShowUpgradePanel();
         
-        // 更新塔信息显示
+        // Update tower info display
         UpdateTowerInfo();
     }
     
-    // 显示塔的攻击范围
+    // Show tower attack range
     void ShowTowerRange(BaseTower tower)
     {
-        // 清除现有的范围指示器
+        // Clear existing range indicator
         if (currentRangeIndicator != null)
         {
             Destroy(currentRangeIndicator);
         }
         
-        // 创建范围指示器
+        // Create range indicator
         if (rangeIndicatorPrefab != null)
         {
             currentRangeIndicator = Instantiate(rangeIndicatorPrefab, tower.transform.position, Quaternion.identity);
@@ -868,19 +1063,19 @@ public class TowerManager : Singleton<TowerManager>
             
             SpriteRenderer rangeRenderer = currentRangeIndicator.AddComponent<SpriteRenderer>();
             rangeRenderer.sprite = Resources.Load<Sprite>("UI/Circle");
-            if (rangeRenderer.sprite == null) // 如果无法加载精灵，创建一个简单的圆形
+            if (rangeRenderer.sprite == null) // If cannot load sprite, create a simple circle
             {
-                rangeRenderer.color = new Color(1f, 1f, 0f, 0.2f); // 半透明黄色
+                rangeRenderer.color = new Color(1f, 1f, 0f, 0.2f); // Semi-transparent yellow
             }
             
-            rangeRenderer.sortingOrder = -1; // 确保范围显示在塔下面
+            rangeRenderer.sortingOrder = -1; // Ensure range is displayed below tower
         }
         
-        // 设置范围大小
+        // Set range size
         currentRangeIndicator.transform.localScale = new Vector3(tower.range * 2, tower.range * 2, 1);
     }
     
-    // 升级选中的塔
+    // Upgrade selected tower
     public void UpgradeSelectedTower()
     {
         if (selectedTower == null)
@@ -890,7 +1085,7 @@ public class TowerManager : Singleton<TowerManager>
         
         bool hasEnoughGold = false;
             
-        // 优先使用CoinManager扣除金币
+        // Use CoinManager to deduct gold first
         if (CoinManager.Instance != null)
         {
             hasEnoughGold = CoinManager.Instance.TrySpendCoins(upgradeCost);
@@ -910,98 +1105,38 @@ public class TowerManager : Singleton<TowerManager>
             
             selectedTower.Upgrade();
             
-            // 更新范围指示器大小
+            // Update range indicator size
             if (currentRangeIndicator != null)
             {
                 currentRangeIndicator.transform.localScale = new Vector3(selectedTower.range * 2, selectedTower.range * 2, 1);
             }
             
-            // 更新UI信息
+            // Update UI information
             UpdateTowerInfo();
             
-            Debug.Log($"升级{selectedTower.towerName}到{selectedTower.level}级，花费{upgradeCost}金币，剩余{currentGold}金币");
+            Debug.Log($"Upgraded {selectedTower.towerName} to {selectedTower.level} level, cost {upgradeCost} gold, remaining {currentGold} gold");
         }
         else if (selectedTower.level >= selectedTower.maxLevel)
         {
-            Debug.LogWarning($"{selectedTower.towerName}已达到最高等级！");
+            Debug.LogWarning($"{selectedTower.towerName} is already at max level!");
         }
         else
         {
-            Debug.LogWarning($"金币不足，需要{upgradeCost}金币！");
+            Debug.LogWarning($"Not enough gold, need {upgradeCost} gold!");
         }
     }
     
-    // 出售选中的塔
-    public void SellSelectedTower()
-    {
-        if (selectedTower == null)
-            return;
-        
-        int sellValue = selectedTower.GetSellValue();
-        // 优先使用CoinManager添加金币
-        if (CoinManager.Instance != null)
-        {
-            CoinManager.Instance.AddCoins(sellValue);
-        }
-        else
-        {
-        currentGold += sellValue;
-            UpdateGoldDisplay();
-        }
-        
-        // 找到塔在字典中的位置
-        Vector3Int towerPos = Vector3Int.zero;
-        foreach (var pair in builtTowers)
-        {
-            if (pair.Value == selectedTower)
-            {
-                towerPos = pair.Key;
-                break;
-            }
-        }
-        
-        // 从字典中移除
-        builtTowers.Remove(towerPos);
-        
-        // 如果使用预设放置点，释放对应的放置点
-        if (usePresetPlacementPoints)
-        {
-            TowerPlacementManager placementManager = TowerPlacementManager.Instance;
-            if (placementManager != null)
-            {
-                placementManager.RemoveTowerAt(towerPos);
-            }
-        }
-        
-        Debug.Log($"出售{selectedTower.towerName}，获得{sellValue}金币，剩余{currentGold}金币");
-        
-        // 销毁塔对象
-        Destroy(selectedTower.gameObject);
-        
-        // 清除选中状态和范围指示器
-        if (currentRangeIndicator != null)
-        {
-            Destroy(currentRangeIndicator);
-            currentRangeIndicator = null;
-        }
-        
-        selectedTower = null;
-        
-        // 显示建造面板
-        ShowBuildPanel();
-    }
     
-    // 切换塔类型
     public void SelectTowerType(TowerType type)
     {
         selectedTowerType = type;
-        Debug.Log($"已选择{type}塔");
+        Debug.Log($"Selected {type} tower");
         
-        // 更新预览精灵
+        // Update preview sprite
         UpdatePreviewSprite();
     }
     
-    // 获取塔预制体
+    // Get tower prefab
     public GameObject GetTowerPrefab(TowerType type)
     {
         GameObject prefab = null;
@@ -1022,23 +1157,23 @@ public class TowerManager : Singleton<TowerManager>
                 typeName = "LaserTower";
                 break;
             default:
-                Debug.LogError($"未知的塔类型: {type}");
+                Debug.LogError($"Unknown tower type: {type}");
                 return null;
         }
         
         if (prefab == null)
         {
-            Debug.LogWarning($"获取{typeName}预制体失败，尝试重新加载...");
+            Debug.LogWarning($"Failed to get {typeName} prefab, trying to reload...");
             prefab = Resources.Load<GameObject>($"tower/{typeName}");
             
             if (prefab == null)
             {
-                Debug.LogError($"无法加载{typeName}预制体，请确保预制体位于Resources/tower/{typeName}");
+                Debug.LogError($"Cannot load {typeName} prefab, please ensure prefab is located in Resources/tower/{typeName}");
             }
             else
             {
-                Debug.Log($"成功重新加载{typeName}预制体");
-                // 更新对应的预制体引用
+                Debug.Log($"Successfully reloaded {typeName} prefab");
+                // Update corresponding prefab reference
                 switch (type)
                 {
                     case TowerType.Cannon:
@@ -1057,35 +1192,20 @@ public class TowerManager : Singleton<TowerManager>
         return prefab;
     }
     
-    // 增加金币（由GameManager调用）
+    // Add gold (called by GameManager)
     public void AddGold(int amount)
     {
-        // 优先使用CoinManager添加金币
         if (CoinManager.Instance != null)
         {
             CoinManager.Instance.AddCoins(amount);
         }
-        else
-    {
-        currentGold += amount;
-            UpdateGoldDisplay();
-        }
-        Debug.Log($"获得{amount}金币，当前金币：{currentGold}");
     }
     
-    // UI相关方法
+    // UI related methods
     public void UpdateGoldDisplay()
     {
-        // 如果使用CoinManager，则不需要在这里更新UI
-        if (CoinManager.Instance != null)
-        {
-            return;
-        }
-        
-        if (goldText != null)
-        {
-            goldText.text = $"金币: {currentGold}";
-        }
+        // Use CoinManager, UI automatically updates, no need to manually refresh
+        return;
     }
     
     private void ShowBuildPanel()
@@ -1105,13 +1225,13 @@ public class TowerManager : Singleton<TowerManager>
         if (upgradePanel != null)
             upgradePanel.SetActive(true);
             
-        // 更新升级按钮状态
+        // Update upgrade button status
         if (upgradeButton != null && selectedTower != null)
         {
             int upgradeCost = selectedTower.GetUpgradeCost();
             bool hasEnoughGold = false;
             
-            // 检查是否有足够的金币
+            // Check if there's enough gold
             if (CoinManager.Instance != null)
             {
                 hasEnoughGold = CoinManager.Instance.HasEnoughCoins(upgradeCost);
@@ -1129,25 +1249,25 @@ public class TowerManager : Singleton<TowerManager>
     {
         if (towerInfoText != null && selectedTower != null)
         {
-            towerInfoText.text = $"{selectedTower.towerName} (等级 {selectedTower.level}/{selectedTower.maxLevel})\n" +
-                                 $"伤害: {selectedTower.damage}\n" +
-                                 $"攻速: {selectedTower.fireRate}/秒\n" +
-                                 $"范围: {selectedTower.range}";
+            towerInfoText.text = $"{selectedTower.towerName} (level {selectedTower.level}/{selectedTower.maxLevel})\n" +
+                                 $"Damage: {selectedTower.damage}\n" +
+                                 $"Fire rate: {selectedTower.fireRate}/second\n" +
+                                 $"Range: {selectedTower.range}";
                                  
             if (selectedTower.level < selectedTower.maxLevel)
             {
-                towerInfoText.text += $"\n升级费用: {selectedTower.GetUpgradeCost()}";
+                towerInfoText.text += $"\nUpgrade cost: {selectedTower.GetUpgradeCost()}";
             }
             else
             {
-                towerInfoText.text += "\n已达最高等级";
+                towerInfoText.text += "\nAlready at max level";
             }
             
-            towerInfoText.text += $"\n出售价值: {selectedTower.GetSellValue()}";
+            towerInfoText.text += $"\nSell value: {selectedTower.GetSellValue()}";
         }
     }
     
-    // UI按钮回调
+    // UI button callbacks
     public void OnCannonTowerButton()
     {
         SelectTowerType(TowerType.Cannon);
@@ -1168,39 +1288,37 @@ public class TowerManager : Singleton<TowerManager>
         UpgradeSelectedTower();
     }
     
-    public void OnSellButtonClick()
-    {
-        SellSelectedTower();
-    }
     
-    // 处理放置点选中/取消选中事件
+    // Handle placement point selected/deselected events
     public void OnPlacementPointSelected(TowerPlacementPoint point)
     {
-        // 在UI中显示可以在该点建造的塔信息
-        // 可以根据游戏设计添加特殊逻辑
+        // Display tower information that can be built at this point in the UI
+        // Special logic can be added based on game design
     }
 
     public void OnPlacementPointDeselected()
     {
-        // 在UI中隐藏建造信息
+        // Hide build information in the UI
     }
 
-    // 添加用于从UI调用的建造塔方法
+    // Add method for building tower from UI
     public void BuildTowerButtonClicked()
     {
-        // 如果是使用预设放置点且有选中的点
+        // If using preset placement points and there's a selected point
         if (usePresetPlacementPoints && selectedPlacementPoint != null)
         {
+            Debug.Log("BuildTowerButtonClicked: Building tower" + selectedPlacementPoint.transform.position);
+            
             BuildTowerOnSelectedPoint();
         }
         else
         {
-            // 普通放置模式下，不需要额外操作
-            // 因为会在点击地图时通过HandleMouseClick处理
+            // No additional operation needed in normal placement mode
+            // Because it will be handled by HandleMouseClick in clicking map
         }
     }
 
-    // 显示通知
+    // Show notification
     public void ShowNotification(string message)
     {
         if (notificationText != null)
@@ -1208,13 +1326,13 @@ public class TowerManager : Singleton<TowerManager>
             notificationText.text = message;
             notificationText.gameObject.SetActive(true);
             
-            // 几秒后隐藏通知
+            // Hide notification after a few seconds
             CancelInvoke("HideNotification");
             Invoke("HideNotification", notificationDuration);
         }
     }
     
-    // 隐藏通知
+    // Hide notification
     private void HideNotification()
     {
         if (notificationText != null)
@@ -1223,38 +1341,162 @@ public class TowerManager : Singleton<TowerManager>
         }
     }
     
-    // 重置塔管理器状态
+    // Reset TowerManager state
     public void ResetState()
     {
-        Debug.Log("[TowerManager] 重置塔管理器状态");
+        Debug.Log("[TowerManager] Reset TowerManager state");
         
-        // 重置金币
-        currentGold = 300; // 重置为初始金币
+        // Reset gold
+        currentGold = 200; // Reset to initial gold
         UpdateGoldDisplay();
         
-        // 取消当前选中的塔
+        // Cancel current selected tower
         DeselectTower();
         DeselectPlacementPoint();
         
-        // 隐藏升级面板，显示建造面板
+        // Hide upgrade panel, show build panel
         ShowBuildPanel();
         
-        // 隐藏通知
+        // Hide notification
         HideNotification();
         
-        // 重置塔预览
+        // Reset tower preview
         if (towerPreview != null)
         {
             towerPreview.SetActive(false);
         }
         
-        // 重置范围指示器
+        // Reset range indicator
         if (currentRangeIndicator != null)
         {
             Destroy(currentRangeIndicator);
             currentRangeIndicator = null;
         }
         
-        Debug.Log("[TowerManager] 塔管理器状态已重置");
+        Debug.Log("[TowerManager] TowerManager state reset");
     }
-} 
+
+    public void OnTowerSelected(BaseTower tower)
+    {
+        if (tower != null)
+        {
+            SelectTower(tower);
+        }
+    }
+
+    public void SellSelectedTower(BaseTower selectedTower)
+    {
+        if (selectedTower == null)
+        {
+            Debug.LogWarning("No selected tower to sell");
+            return;
+        }
+
+        // Get tower's sell value
+        int sellValue = selectedTower.GetSellValue();
+
+        // Use CoinManager to add gold (if exists)
+        if (CoinManager.Instance != null)
+        {
+            CoinManager.Instance.AddCoins(sellValue);
+        }
+        else
+        {
+            currentGold += sellValue;
+            UpdateGoldDisplay();
+        }
+
+        // 1. Remove tower from built towers list
+        Vector3Int towerKey = Vector3Int.zero;
+        bool found = false;
+
+        // Iterate through dictionary to find this tower's position
+        foreach (var pair in builtTowers)
+        {
+            if (pair.Value == selectedTower)
+            {
+                towerKey = pair.Key;
+                found = true;
+                break;
+            }
+        }
+
+        if (found)
+        {
+            builtTowers.Remove(towerKey);
+            Debug.Log($"Removed tower from built list: {selectedTower.towerName}");
+        }
+        else
+        {
+            Debug.LogWarning($"Tower not found in built list: {selectedTower.towerName}");
+        }
+
+        // 2. Get and reset associated placement point
+        TowerPlacementPoint placementPoint = null;
+
+        if (usePresetPlacementPoints)
+        {
+            TowerPlacementManager placementManager = TowerPlacementManager.Instance;
+            if (placementManager != null)
+            {
+                // Get associated placement point
+                placementPoint = placementManager.GetPlacementPoint(towerKey);
+                Debug.Log("Get associated point" + placementPoint);
+                if (placementPoint != null)
+                {
+                    // Reset placement point state
+                    placementPoint.ReleasePoint();  // This will set isEnabled = true
+                    Debug.Log($"Reset placement point: {placementPoint.pointID}, {placementPoint.isEnabled}");
+
+                    // If needed, can directly set:
+                    // placementPoint.isEnabled = true;
+                    // placementPoint.isOccupied = false;
+                }
+                else
+                {
+                    Debug.LogWarning($"Tower associated placement point not found: {towerKey}");
+                }
+            }
+        }
+
+        // 3. Destroy tower object
+        Debug.Log($"Sold tower: {selectedTower.towerName}, gained {sellValue} gold");
+        Destroy(selectedTower.gameObject);
+
+        // 4. Clear selected state and range indicator
+        if (currentRangeIndicator != null)
+        {
+            Destroy(currentRangeIndicator);
+            currentRangeIndicator = null;
+        }
+
+        selectedTower = null;
+
+        // 5. Show build panel
+        ShowBuildPanel();
+
+        // 6. Show notification
+        ShowNotification($"Sold tower, gained {sellValue} gold");
+
+        // 7. If there's operation panel, hide it
+        if (towerOperationPanel != null)
+        {
+            towerOperationPanel.HidePanel();
+        }
+    }
+    public void OnTowerSold(BaseTower selectedTower)
+    {
+        SellSelectedTower(selectedTower);
+    }
+    public void OnTowerUpgraded(BaseTower upgradedTower)
+    {
+        if (upgradedTower == null)
+        {
+            Debug.LogWarning("Received empty tower upgrade notification");
+            return;
+        }
+
+        Debug.Log($"{upgradedTower.towerName} upgraded to {upgradedTower.level} level");
+    }
+
+}

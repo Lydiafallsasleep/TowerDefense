@@ -1,55 +1,55 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // 添加TextMeshPro命名空间
+using TMPro; // Add TextMeshPro namespace
 using System.Collections;
 
 /// <summary>
-/// 生命值数字显示组件，增强生命值数字显示效果
+/// Lives display component, enhances the visual display of player lives
 /// </summary>
 public class LivesDisplay : MonoBehaviour
 {
-    [Header("显示设置")]
-    public Text livesText; // 传统UGUI Text组件
-    public TextMeshProUGUI livesTMP; // TextMeshPro UGUI组件
-    public bool showAsPercentage = false; // 是否显示为百分比
-    public string prefixText = "生命: "; // 前缀文本
+    [Header("Display Settings")]
+    public Text livesText; // Traditional UGUI Text component
+    public TextMeshProUGUI livesTMP; // TextMeshPro UGUI component
+    public bool showAsPercentage = false; // Whether to display as percentage
+    public string prefixText = "Lives: "; // Prefix text
     
-    [Header("动画设置")]
-    public bool animateChanges = true; // 是否动画显示变化
-    public float animationDuration = 0.5f; // 动画持续时间
-    public Color damageColor = new Color(1f, 0.3f, 0.3f); // 受伤颜色
-    public Color healColor = new Color(0.3f, 1f, 0.3f); // 治疗颜色
+    [Header("Animation Settings")]
+    public bool animateChanges = true; // Whether to animate changes
+    public float animationDuration = 0.5f; // Animation duration
+    public Color damageColor = new Color(1f, 0.3f, 0.3f); // Damage color
+    public Color healColor = new Color(0.3f, 1f, 0.3f); // Heal color
     
-    [Header("闪烁警告")]
-    public bool enableLowHealthWarning = true; // 是否启用低生命值警告
-    public int lowHealthThreshold = 3; // 低生命值阈值
-    public float warningBlinkRate = 1.5f; // 警告闪烁速率
+    [Header("Blink Warning")]
+    public bool enableLowHealthWarning = true; // Whether to enable low health warning
+    public int lowHealthThreshold = 3; // Low health threshold
+    public float warningBlinkRate = 1.5f; // Warning blink rate
     
-    [Header("调试设置")]
-    public bool initializeWithDefaultValues = true; // 是否使用默认值初始化
-    public int defaultLives = 10; // 默认生命值
-    public int defaultMaxLives = 10; // 默认最大生命值
+    [Header("Debug Settings")]
+    public bool initializeWithDefaultValues = true; // Whether to initialize with default values
+    public int defaultLives = 10; // Default lives
+    public int defaultMaxLives = 10; // Default maximum lives
     
-    private PlayerHealth playerHealth; // 玩家生命值组件
-    private int lastLives; // 上一次的生命值
-    private Coroutine blinkCoroutine; // 闪烁协程
-    private Color originalTextColor; // 原始文本颜色
-    private Color originalTMPColor; // 原始TMP文本颜色
-    private bool usingTMP = false; // 是否使用TMP
+    private PlayerHealth playerHealth; // Player health component
+    private int lastLives; // Last lives value
+    private Coroutine blinkCoroutine; // Blink coroutine
+    private Color originalTextColor; // Original text color
+    private Color originalTMPColor; // Original TMP text color
+    private bool usingTMP = false; // Whether using TMP
     
     void Awake()
     {
-        Debug.Log("[LivesDisplay] Awake - 初始化组件");
+        Debug.Log("[LivesDisplay] Awake - Initializing component");
         
-        // 检查使用哪种文本组件
+        // Check which text component to use
         usingTMP = livesTMP != null;
         
         if (usingTMP)
-            Debug.Log("[LivesDisplay] 使用TMP文本组件");
+            Debug.Log("[LivesDisplay] Using TMP text component");
         else
-            Debug.Log("[LivesDisplay] 使用标准Text组件");
+            Debug.Log("[LivesDisplay] Using standard Text component");
         
-        // 保存原始文本颜色
+        // Save original text color
         if (livesText != null)
         {
             originalTextColor = livesText.color;
@@ -59,70 +59,70 @@ public class LivesDisplay : MonoBehaviour
             originalTMPColor = livesTMP.color;
         }
         
-        // 如果启用了默认值初始化，立即显示默认值
+        // If default value initialization is enabled, immediately display default values
         if (initializeWithDefaultValues)
         {
-            Debug.Log($"[LivesDisplay] 使用默认值初始化: {defaultLives}/{defaultMaxLives}");
+            Debug.Log($"[LivesDisplay] Initializing with default values: {defaultLives}/{defaultMaxLives}");
             UpdateDisplay(defaultLives, defaultMaxLives, false);
         }
     }
     
     void Start()
     {
-        Debug.Log("[LivesDisplay] Start - 查找PlayerHealth组件");
+        Debug.Log("[LivesDisplay] Start - Finding PlayerHealth component");
         
-        // 获取玩家生命值组件
+        // Get player health component
         playerHealth = FindObjectOfType<PlayerHealth>();
         
-        // 如果找到了PlayerHealth组件，连接到生命值变化事件
+        // If PlayerHealth component is found, connect to lives changed event
         if (playerHealth != null)
         {
-            Debug.Log($"[LivesDisplay] 找到PlayerHealth组件，当前生命值: {playerHealth.GetCurrentLives()}/{playerHealth.GetMaxLives()}");
+            Debug.Log($"[LivesDisplay] Found PlayerHealth component, current lives: {playerHealth.GetCurrentLives()}/{playerHealth.GetMaxLives()}");
             playerHealth.OnLivesChanged += OnLivesChanged;
             
-            // 初始化上一次生命值
+            // Initialize last lives
             lastLives = playerHealth.GetCurrentLives();
             
-            // 初始更新显示
+            // Initial display update
             UpdateDisplay(playerHealth.GetCurrentLives(), playerHealth.GetMaxLives(), false);
         }
         else
         {
-            Debug.LogWarning("[LivesDisplay] 未找到PlayerHealth组件，使用默认值");
+            Debug.LogWarning("[LivesDisplay] PlayerHealth component not found, using default values");
             
-            // 如果没有找到PlayerHealth组件，尝试从GameManager获取
+            // If PlayerHealth component not found, try to get from GameManager
             if (GameManager.Instance != null)
             {
                 int currentLives = GameManager.Instance.GetCurrentLives();
                 int maxLives = GameManager.Instance.maxLives;
-                Debug.Log($"[LivesDisplay] 从GameManager获取生命值: {currentLives}/{maxLives}");
+                Debug.Log($"[LivesDisplay] Getting lives from GameManager: {currentLives}/{maxLives}");
                 UpdateDisplay(currentLives, maxLives, false);
             }
             else if (initializeWithDefaultValues)
             {
-                // 使用默认值
-                Debug.Log($"[LivesDisplay] 使用默认值: {defaultLives}/{defaultMaxLives}");
+                // Use default values
+                Debug.Log($"[LivesDisplay] Using default values: {defaultLives}/{defaultMaxLives}");
                 UpdateDisplay(defaultLives, defaultMaxLives, false);
             }
         }
         
-        // 确保显示不为空
+        // Ensure display is not empty
         if (livesTMP != null && string.IsNullOrEmpty(livesTMP.text))
         {
-            Debug.LogWarning("[LivesDisplay] TMP文本为空，使用默认值");
+            Debug.LogWarning("[LivesDisplay] TMP text is empty, using default values");
             livesTMP.text = $"{prefixText}{defaultLives}/{defaultMaxLives}";
         }
         
         if (livesText != null && string.IsNullOrEmpty(livesText.text))
         {
-            Debug.LogWarning("[LivesDisplay] Text文本为空，使用默认值");
+            Debug.LogWarning("[LivesDisplay] Text is empty, using default values");
             livesText.text = $"{prefixText}{defaultLives}/{defaultMaxLives}";
         }
     }
     
     void OnEnable()
     {
-        // 确保组件启用时显示正确的值
+        // Ensure correct values are displayed when component is enabled
         if (playerHealth != null)
         {
             UpdateDisplay(playerHealth.GetCurrentLives(), playerHealth.GetMaxLives(), false);
@@ -135,13 +135,13 @@ public class LivesDisplay : MonoBehaviour
     
     void OnDestroy()
     {
-        // 取消订阅事件
+        // Unsubscribe from events
         if (playerHealth != null)
         {
             playerHealth.OnLivesChanged -= OnLivesChanged;
         }
         
-        // 停止所有协程
+        // Stop all coroutines
         if (blinkCoroutine != null)
         {
             StopCoroutine(blinkCoroutine);
@@ -149,30 +149,30 @@ public class LivesDisplay : MonoBehaviour
     }
     
     /// <summary>
-    /// 处理生命值变化事件
+    /// Handle lives changed event
     /// </summary>
     private void OnLivesChanged(int currentLives, int maxLives)
     {
-        Debug.Log($"[LivesDisplay] 收到生命值变化事件: {currentLives}/{maxLives} (之前: {lastLives})");
+        Debug.Log($"[LivesDisplay] Received lives changed event: {currentLives}/{maxLives} (previous: {lastLives})");
         
-        // 检查生命值是否变化
+        // Check if lives decreased
         bool isDecrease = currentLives < lastLives;
         
-        // 更新显示
+        // Update display
         UpdateDisplay(currentLives, maxLives, isDecrease);
         
-        // 更新上一次生命值
+        // Update last lives
         lastLives = currentLives;
     }
     
     /// <summary>
-    /// 更新显示
+    /// Update display
     /// </summary>
     private void UpdateDisplay(int currentLives, int maxLives, bool isDecrease)
     {
-        Debug.Log($"[LivesDisplay] 更新显示: {currentLives}/{maxLives}");
+        Debug.Log($"[LivesDisplay] Updating display: {currentLives}/{maxLives}");
         
-        // 构建显示文本
+        // Build display text
         string displayText;
         if (showAsPercentage)
         {
@@ -184,176 +184,164 @@ public class LivesDisplay : MonoBehaviour
             displayText = $"{prefixText}{currentLives}/{maxLives}";
         }
         
-        // 设置文本
+        // Set text
         if (livesText != null)
         {
             livesText.text = displayText;
-            Debug.Log($"[LivesDisplay] 更新Text: {displayText}");
+            Debug.Log($"[LivesDisplay] Updated Text: {displayText}");
         }
         if (livesTMP != null)
         {
             livesTMP.text = displayText;
-            Debug.Log($"[LivesDisplay] 更新TMP: {displayText}");
+            Debug.Log($"[LivesDisplay] Updated TMP: {displayText}");
         }
         
-        // 如果启用了动画，并且生命值发生了变化
+        // If animation is enabled and lives changed
         if (animateChanges && lastLives != currentLives && lastLives != 0)
         {
-            // 停止任何正在进行的动画
-            if (blinkCoroutine != null)
-            {
-                StopCoroutine(blinkCoroutine);
-                blinkCoroutine = null;
-            }
+            // Stop any running animation
+            StopAllCoroutines();
             
-            // 开始新的动画
-            StartCoroutine(AnimateTextColor(isDecrease ? damageColor : healColor));
+            // Determine color based on whether lives decreased or increased
+            Color targetColor = isDecrease ? damageColor : healColor;
+            
+            // Start animation
+            StartCoroutine(AnimateTextColor(targetColor));
         }
         
-        // 检查是否需要启动低生命值警告
+        // Check for low health warning
         CheckLowHealthWarning(currentLives, maxLives);
     }
     
     /// <summary>
-    /// 动画显示文本颜色变化
+    /// Animate text color change
     /// </summary>
     private IEnumerator AnimateTextColor(Color targetColor)
     {
-        float elapsed = 0f;
+        Debug.Log($"[LivesDisplay] Animating text color to {targetColor}");
         
-        // 选择正确的文本组件
-        if (usingTMP && livesTMP != null)
+        // Set initial color
+        if (livesText != null)
         {
-            Color startColor = livesTMP.color;
-            
-            // 从当前颜色渐变到目标颜色
-            while (elapsed < animationDuration)
-            {
-                livesTMP.color = Color.Lerp(startColor, targetColor, elapsed / animationDuration);
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-            
-            // 确保到达目标颜色
-            livesTMP.color = targetColor;
-            
-            // 短暂停留后恢复原始颜色
-            yield return new WaitForSeconds(0.2f);
-            
-            // 从目标颜色渐变回原始颜色
-            elapsed = 0f;
-            while (elapsed < animationDuration)
-            {
-                livesTMP.color = Color.Lerp(targetColor, originalTMPColor, elapsed / animationDuration);
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-            
-            // 确保恢复原始颜色
-            livesTMP.color = originalTMPColor;
-        }
-        else if (livesText != null)
-        {
-            Color startColor = livesText.color;
-            
-            // 从当前颜色渐变到目标颜色
-            while (elapsed < animationDuration)
-            {
-                livesText.color = Color.Lerp(startColor, targetColor, elapsed / animationDuration);
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-            
-            // 确保到达目标颜色
             livesText.color = targetColor;
+        }
+        if (livesTMP != null)
+        {
+            livesTMP.color = targetColor;
+        }
+        
+        float elapsedTime = 0f;
+        
+        // Gradually return to original color
+        while (elapsedTime < animationDuration)
+        {
+            elapsedTime += Time.deltaTime;
+            float t = elapsedTime / animationDuration;
             
-            // 短暂停留后恢复原始颜色
-            yield return new WaitForSeconds(0.2f);
+            // Calculate interpolated color
+            Color currentColor = Color.Lerp(targetColor, usingTMP ? originalTMPColor : originalTextColor, t);
             
-            // 从目标颜色渐变回原始颜色
-            elapsed = 0f;
-            while (elapsed < animationDuration)
+            // Apply color
+            if (livesText != null)
             {
-                livesText.color = Color.Lerp(targetColor, originalTextColor, elapsed / animationDuration);
-                elapsed += Time.deltaTime;
-                yield return null;
+                livesText.color = currentColor;
+            }
+            if (livesTMP != null)
+            {
+                livesTMP.color = currentColor;
             }
             
-            // 确保恢复原始颜色
+            yield return null;
+        }
+        
+        // Ensure final color is set
+        if (livesText != null)
+        {
             livesText.color = originalTextColor;
         }
+        if (livesTMP != null)
+        {
+            livesTMP.color = originalTMPColor;
+        }
+        
+        Debug.Log("[LivesDisplay] Text color animation complete");
     }
     
     /// <summary>
-    /// 检查是否需要启动低生命值警告
+    /// Check for low health warning
     /// </summary>
     private void CheckLowHealthWarning(int currentLives, int maxLives)
     {
-        // 如果启用了低生命值警告，并且当前生命值低于阈值
-        if (enableLowHealthWarning && currentLives <= lowHealthThreshold)
+        // If low health warning is enabled
+        if (enableLowHealthWarning)
         {
-            // 如果没有正在运行的闪烁协程，启动一个
-            if (blinkCoroutine == null)
-            {
-                blinkCoroutine = StartCoroutine(BlinkText());
-            }
-        }
-        else
-        {
-            // 如果生命值恢复正常，停止闪烁
+            // Stop existing blink coroutine
             if (blinkCoroutine != null)
             {
                 StopCoroutine(blinkCoroutine);
                 blinkCoroutine = null;
                 
-                // 确保文本恢复原始颜色
-                if (usingTMP && livesTMP != null)
-                {
-                    livesTMP.color = originalTMPColor;
-                }
-                else if (livesText != null)
+                // Reset colors
+                if (livesText != null)
                 {
                     livesText.color = originalTextColor;
                 }
+                if (livesTMP != null)
+                {
+                    livesTMP.color = originalTMPColor;
+                }
+            }
+            
+            // Check if current lives is below threshold
+            if (currentLives <= lowHealthThreshold && currentLives > 0)
+            {
+                Debug.Log($"[LivesDisplay] Low health warning activated: {currentLives} <= {lowHealthThreshold}");
+                // Start blink coroutine
+                blinkCoroutine = StartCoroutine(BlinkText());
             }
         }
     }
     
     /// <summary>
-    /// 文本闪烁效果
+    /// Blink text for low health warning
     /// </summary>
     private IEnumerator BlinkText()
     {
+        Debug.Log("[LivesDisplay] Starting text blink effect");
+        
         while (true)
         {
-            if (usingTMP && livesTMP != null)
+            // Switch between warning color and original color
+            if (livesText != null)
             {
-                // 在原始颜色和警告颜色之间切换
-                livesTMP.color = livesTMP.color == originalTMPColor ? damageColor : originalTMPColor;
-            }
-            else if (livesText != null)
-            {
-                // 在原始颜色和警告颜色之间切换
                 livesText.color = livesText.color == originalTextColor ? damageColor : originalTextColor;
             }
+            if (livesTMP != null)
+            {
+                livesTMP.color = livesTMP.color == originalTMPColor ? damageColor : originalTMPColor;
+            }
             
-            // 等待一段时间
+            // Wait for next blink
             yield return new WaitForSeconds(1f / warningBlinkRate);
         }
     }
     
     /// <summary>
-    /// 手动更新显示
+    /// Force update display (can be called from external scripts)
     /// </summary>
     public void ForceUpdateDisplay()
     {
+        Debug.Log("[LivesDisplay] Force updating display");
+        
         if (playerHealth != null)
         {
             UpdateDisplay(playerHealth.GetCurrentLives(), playerHealth.GetMaxLives(), false);
         }
         else if (GameManager.Instance != null)
         {
-            UpdateDisplay(GameManager.Instance.GetCurrentLives(), GameManager.Instance.maxLives, false);
+            int currentLives = GameManager.Instance.GetCurrentLives();
+            int maxLives = GameManager.Instance.maxLives;
+            UpdateDisplay(currentLives, maxLives, false);
         }
         else
         {

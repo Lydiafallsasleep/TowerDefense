@@ -2,12 +2,12 @@ using UnityEngine;
 
 public class CoinDebugger : MonoBehaviour
 {
-    [Header("调试设置")]
+    [Header("Debug Settings")]
     [SerializeField] private bool enableDebug = true;
     [SerializeField] private int addAmount = 50;
     [SerializeField] private int spendAmount = 20;
     
-    [Header("快捷键设置")]
+    [Header("Hotkey Settings")]
     [SerializeField] private KeyCode addCoinsKey = KeyCode.F1;
     [SerializeField] private KeyCode spendCoinsKey = KeyCode.F2;
     [SerializeField] private KeyCode resetCoinsKey = KeyCode.F3;
@@ -16,32 +16,32 @@ public class CoinDebugger : MonoBehaviour
     {
         if (!enableDebug) return;
         
-        // 检查CoinManager是否存在
+        // Check if CoinManager exists
         if (CoinManager.Instance == null) return;
         
-        // 增加金币
+        // Add coins
         if (Input.GetKeyDown(addCoinsKey))
         {
             CoinManager.Instance.AddCoins(addAmount);
-            Debug.Log($"[CoinDebugger] 添加了 {addAmount} 金币");
+            Debug.Log($"[CoinDebugger] Added {addAmount} coins");
         }
         
-        // 尝试消费金币
+        // Try to spend coins
         if (Input.GetKeyDown(spendCoinsKey))
         {
             bool success = CoinManager.Instance.TrySpendCoins(spendAmount);
-            Debug.Log($"[CoinDebugger] 尝试消费 {spendAmount} 金币: {(success ? "成功" : "失败")}");
+            Debug.Log($"[CoinDebugger] Tried to spend {spendAmount} coins: {(success ? "Success" : "Failed")}");
         }
         
-        // 重置金币
+        // Reset coins
         if (Input.GetKeyDown(resetCoinsKey))
         {
             CoinManager.Instance.ResetCoins();
-            Debug.Log("[CoinDebugger] 金币已重置");
+            Debug.Log("[CoinDebugger] Coins have been reset");
         }
     }
     
-    // 在Inspector中可以直接调用的方法
+    // Methods that can be called directly from the Inspector
     public void AddCoinsFromInspector()
     {
         if (CoinManager.Instance != null)

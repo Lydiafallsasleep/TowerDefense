@@ -4,11 +4,11 @@ using TMPro;
 
 public class CoinUI : MonoBehaviour
 {
-    [Header("UI引用")]
-    public Text coinText; // 传统UGUI Text
-    public TextMeshProUGUI coinTMP; // TextMeshPro支持
+    [Header("UI References")]
+    public Text coinText; // Traditional UGUI Text
+    public TextMeshProUGUI coinTMP; // TextMeshPro support
     
-    [Header("动画设置")]
+    [Header("Animation Settings")]
     [SerializeField] private bool animateChanges = true;
     [SerializeField] private float animationDuration = 0.5f;
     [SerializeField] private Color positiveChangeColor = Color.green;
@@ -19,23 +19,23 @@ public class CoinUI : MonoBehaviour
     
     private void Start()
     {
-        // 注册金币变更事件
+        // Register coin change event
         if (CoinManager.Instance != null)
         {
             CoinManager.Instance.OnCoinsChanged += UpdateCoinDisplay;
             
-            // 初始显示
+            // Initial display
             UpdateCoinDisplay(CoinManager.Instance.CurrentCoins);
         }
         else
         {
-            Debug.LogError("找不到CoinManager实例！");
+            Debug.LogError("CoinManager instance not found!");
         }
     }
     
     private void OnDestroy()
     {
-        // 取消注册事件
+        // Unregister event
         if (CoinManager.Instance != null)
         {
             CoinManager.Instance.OnCoinsChanged -= UpdateCoinDisplay;
@@ -44,7 +44,7 @@ public class CoinUI : MonoBehaviour
     
     private void UpdateCoinDisplay(int amount)
     {
-        // 更新UI文本
+        // Update UI text
         string coinString = amount.ToString();
         
         if (coinText != null)
@@ -57,7 +57,7 @@ public class CoinUI : MonoBehaviour
             coinTMP.text = coinString;
         }
         
-        // 如果启用了动画效果，并且不是初始值
+        // If animation is enabled and not initial value
         if (animateChanges && lastCoinAmount != 0)
         {
             AnimateCoinChange(lastCoinAmount, amount);
@@ -68,16 +68,16 @@ public class CoinUI : MonoBehaviour
     
     private void AnimateCoinChange(int oldValue, int newValue)
     {
-        // 如果有正在进行的动画，停止它
+        // If there's an ongoing animation, stop it
         if (animationCoroutine != null)
         {
             StopCoroutine(animationCoroutine);
         }
         
-        // 设置颜色
+        // Set color
         Color targetColor = newValue > oldValue ? positiveChangeColor : negativeChangeColor;
         
-        // 应用颜色
+        // Apply color
         if (coinText != null)
         {
             coinText.color = targetColor;
@@ -88,13 +88,13 @@ public class CoinUI : MonoBehaviour
             coinTMP.color = targetColor;
         }
         
-        // 恢复原色
+        // Reset color
         Invoke("ResetTextColor", animationDuration);
     }
     
     private void ResetTextColor()
     {
-        // 恢复默认颜色
+        // Restore default color
         if (coinText != null)
         {
             coinText.color = Color.white;
@@ -106,7 +106,7 @@ public class CoinUI : MonoBehaviour
         }
     }
     
-    // 用于手动更新显示
+    // For manually updating display
     public void RefreshDisplay()
     {
         if (CoinManager.Instance != null)

@@ -2,45 +2,46 @@ using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// 运行时构建塔预制体的工具类，解决塔预制体缺失问题
+/// Runtime tower prefab builder utility class to handle missing tower prefabs
 /// </summary>
 public class SimpleTowerBuilder : MonoBehaviour
 {
-    [Header("预制体保存设置")]
+    [Header("Prefab Saving Settings")]
     public bool saveToResources = true;
+    public string resourcePath = "tower"; // Resource path for saving prefabs
 
-    [Header("基础组件")]
+    [Header("Base Components")]
     public Sprite cannonTowerSprite;
     public Sprite arrowTowerSprite;
     public Sprite laserTowerSprite;
     
-    [Header("投射物")]
+    [Header("Projectiles")]
     public Sprite cannonballSprite;
     public Sprite arrowSprite;
     
-    // 在启动时自动创建预制体
+    // Automatically create prefabs on startup
     void Awake()
     {
-        Debug.Log("初始化塔预制体...");
+        Debug.Log("Initializing tower prefabs...");
         CreateTowerPrefabs();
     }
     
-    // 创建所有塔预制体
+    // Create all tower prefabs
     public void CreateTowerPrefabs()
     {
         CreateCannonTower();
         CreateArrowTower();
         CreateLaserTower();
         CreateProjectiles();
-        Debug.Log("塔预制体初始化完成");
+        Debug.Log("Tower prefab initialization complete");
     }
     
-    // 创建炮塔预制体
+    // Create cannon tower prefab
     private GameObject CreateCannonTower()
     {
         GameObject towerObj = new GameObject("CannonTower");
         
-        // 添加基础组件
+        // Add base components
         SpriteRenderer spriteRenderer = towerObj.AddComponent<SpriteRenderer>();
         if (cannonTowerSprite != null)
         {
@@ -48,54 +49,55 @@ public class SimpleTowerBuilder : MonoBehaviour
         }
         else
         {
-            // 创建一个简单的圆形作为默认图像
+            // Create simple circle as default sprite
             spriteRenderer.color = Color.gray;
         }
         
-        // 添加塔脚本
+        // Add tower script
         CannonTower tower = towerObj.AddComponent<CannonTower>();
         
-        // 添加碰撞器用于选择
+        // Add collider for selection
         CircleCollider2D collider = towerObj.AddComponent<CircleCollider2D>();
         collider.radius = 0.5f;
         
-        // 添加音源
+        // Add audio source
         AudioSource audioSource = towerObj.AddComponent<AudioSource>();
         audioSource.playOnAwake = false;
         
-        // 创建发射点
+        // Create fire point
         GameObject firePoint = new GameObject("FirePoint");
         firePoint.transform.SetParent(towerObj.transform);
         firePoint.transform.localPosition = new Vector3(0, 0.5f, 0);
         tower.firePoint = firePoint.transform;
         
-        // 设置基本属性
-        tower.towerName = "炮塔";
+        // Set base properties
+        tower.towerName = "Cannon Tower";
         tower.damage = 30f;
         tower.fireRate = 0.8f;
         tower.range = 6f;
-        tower.buildCost = 150;
-        tower.upgradeCost = 100;
+        tower.cost = 150;
+        tower.upgradePrice = 100;
         
-        // 将预制体保存到Resources文件夹
+        // Save prefab to Resources folder
         if (saveToResources)
         {
-            GameObject prefabInstance = SaveTowerPrefab("tower/CannonTower", towerObj);
-            towerObj = prefabInstance; // 使用保存的实例
+            string path = resourcePath + "/CannonTower";
+            GameObject prefabInstance = SaveTowerPrefab(path, towerObj);
+            towerObj = prefabInstance; // Use saved instance
         }
         
-        // 默认不激活
+        // Deactivate by default
         towerObj.SetActive(false);
         
         return towerObj;
     }
     
-    // 创建箭塔预制体
+    // Create arrow tower prefab
     private GameObject CreateArrowTower()
     {
         GameObject towerObj = new GameObject("ArrowTower");
         
-        // 添加基础组件
+        // Add base components
         SpriteRenderer spriteRenderer = towerObj.AddComponent<SpriteRenderer>();
         if (arrowTowerSprite != null)
         {
@@ -103,54 +105,55 @@ public class SimpleTowerBuilder : MonoBehaviour
         }
         else
         {
-            // 创建一个简单的方形作为默认图像
+            // Create simple square as default sprite
             spriteRenderer.color = Color.green;
         }
         
-        // 添加塔脚本
+        // Add tower script
         ArrowTower tower = towerObj.AddComponent<ArrowTower>();
         
-        // 添加碰撞器用于选择
+        // Add collider for selection
         CircleCollider2D collider = towerObj.AddComponent<CircleCollider2D>();
         collider.radius = 0.5f;
         
-        // 添加音源
+        // Add audio source
         AudioSource audioSource = towerObj.AddComponent<AudioSource>();
         audioSource.playOnAwake = false;
         
-        // 创建发射点
+        // Create fire point
         GameObject firePoint = new GameObject("FirePoint");
         firePoint.transform.SetParent(towerObj.transform);
         firePoint.transform.localPosition = new Vector3(0, 0.5f, 0);
         tower.firePoint = firePoint.transform;
         
-        // 设置基本属性
-        tower.towerName = "箭塔";
+        // Set base properties
+        tower.towerName = "Arrow Tower";
         tower.damage = 8f;
         tower.fireRate = 2.5f;
         tower.range = 5f;
-        tower.buildCost = 100;
-        tower.upgradeCost = 75;
+        tower.cost = 100;
+        tower.upgradePrice = 75;
         
-        // 将预制体保存到Resources文件夹
+        // Save prefab to Resources folder
         if (saveToResources)
         {
-            GameObject prefabInstance = SaveTowerPrefab("tower/ArrowTower", towerObj);
-            towerObj = prefabInstance; // 使用保存的实例
+            string path = resourcePath + "/ArrowTower";
+            GameObject prefabInstance = SaveTowerPrefab(path, towerObj);
+            towerObj = prefabInstance; // Use saved instance
         }
         
-        // 默认不激活
+        // Deactivate by default
         towerObj.SetActive(false);
         
         return towerObj;
     }
     
-    // 创建激光塔预制体
+    // Create laser tower prefab
     private GameObject CreateLaserTower()
     {
         GameObject towerObj = new GameObject("LaserTower");
         
-        // 添加基础组件
+        // Add base components
         SpriteRenderer spriteRenderer = towerObj.AddComponent<SpriteRenderer>();
         if (laserTowerSprite != null)
         {
@@ -158,22 +161,22 @@ public class SimpleTowerBuilder : MonoBehaviour
         }
         else
         {
-            // 创建一个简单的方形作为默认图像
+            // Create simple square as default sprite
             spriteRenderer.color = Color.red;
         }
         
-        // 添加塔脚本
+        // Add tower script
         LaserTower tower = towerObj.AddComponent<LaserTower>();
         
-        // 添加碰撞器用于选择
+        // Add collider for selection
         CircleCollider2D collider = towerObj.AddComponent<CircleCollider2D>();
         collider.radius = 0.5f;
         
-        // 添加音源
+        // Add audio source
         AudioSource audioSource = towerObj.AddComponent<AudioSource>();
         audioSource.playOnAwake = false;
         
-        // 添加线渲染器作为激光
+        // Add line renderer for laser
         LineRenderer lineRenderer = towerObj.AddComponent<LineRenderer>();
         lineRenderer.startWidth = 0.1f;
         lineRenderer.endWidth = 0.1f;
@@ -182,41 +185,41 @@ public class SimpleTowerBuilder : MonoBehaviour
         lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
         lineRenderer.startColor = Color.red;
         lineRenderer.endColor = Color.yellow;
-        tower.laserLineRenderer = lineRenderer;
+        tower.laserBeam = lineRenderer;
         lineRenderer.enabled = false;
         
-        // 创建发射点
+        // Create fire point
         GameObject firePoint = new GameObject("FirePoint");
         firePoint.transform.SetParent(towerObj.transform);
         firePoint.transform.localPosition = new Vector3(0, 0.5f, 0);
         tower.firePoint = firePoint.transform;
         
-        // 设置基本属性
-        tower.towerName = "激光塔";
+        // Set base properties
+        tower.towerName = "Laser Tower";
         tower.damage = 20f;
-        tower.fireRate = 0f; // 持续伤害
+        tower.fireRate = 0f; // Continuous damage
         tower.range = 4f;
-        tower.buildCost = 175;
-        tower.upgradeCost = 125;
-        tower.damageRate = 0.1f;
+        tower.cost = 175;
+        tower.upgradePrice = 125;
         
-        // 将预制体保存到Resources文件夹
+        // Save prefab to Resources folder
         if (saveToResources)
         {
-            GameObject prefabInstance = SaveTowerPrefab("tower/LaserTower", towerObj);
-            towerObj = prefabInstance; // 使用保存的实例
+            string path = resourcePath + "/LaserTower";
+            GameObject prefabInstance = SaveTowerPrefab(path, towerObj);
+            towerObj = prefabInstance; // Use saved instance
         }
         
-        // 默认不激活
+        // Deactivate by default
         towerObj.SetActive(false);
         
         return towerObj;
     }
     
-    // 创建投射物预制体
+    // Create projectile prefabs
     private void CreateProjectiles()
     {
-        // 创建炮弹预制体
+        // Create cannonball prefab
         GameObject cannonball = new GameObject("Cannonball");
         SpriteRenderer cannonballRenderer = cannonball.AddComponent<SpriteRenderer>();
         if (cannonballSprite != null)
@@ -237,13 +240,14 @@ public class SimpleTowerBuilder : MonoBehaviour
         cannonballCollider.radius = 0.2f;
         cannonballCollider.isTrigger = true;
         
-        // 保存预制体
+        // Save prefab
         if (saveToResources)
         {
-            SaveTowerPrefab("tower/Cannonball", cannonball);
+            string path = resourcePath + "/Cannonball";
+            SaveTowerPrefab(path, cannonball);
         }
         
-        // 创建箭矢预制体
+        // Create arrow prefab
         GameObject arrow = new GameObject("Arrow");
         SpriteRenderer arrowRenderer = arrow.AddComponent<SpriteRenderer>();
         if (arrowSprite != null)
@@ -257,30 +261,49 @@ public class SimpleTowerBuilder : MonoBehaviour
         
         Projectile arrowScript = arrow.AddComponent<Projectile>();
         arrowScript.damage = 8f;
-        arrowScript.speed = 30f;
-        arrowScript.explosionRadius = 0f;
+        arrowScript.speed = 20f;
+        arrowScript.explosionRadius = 0f; // Arrows don't explode
         
         BoxCollider2D arrowCollider = arrow.AddComponent<BoxCollider2D>();
         arrowCollider.size = new Vector2(0.5f, 0.1f);
         arrowCollider.isTrigger = true;
         
-        // 保存预制体
+        // Save prefab
         if (saveToResources)
         {
-            SaveTowerPrefab("tower/Arrow", arrow);
+            string path = resourcePath + "/Arrow";
+            SaveTowerPrefab(path, arrow);
         }
     }
     
-    // 将游戏对象保存为预制体
+    // Save prefab to Resources folder
     private GameObject SaveTowerPrefab(string path, GameObject obj)
     {
-        // 在运行时，我们不能真正地创建预制体资源
-        // 但我们可以创建不会被销毁的游戏对象，然后作为预制体使用
-        GameObject instance = Instantiate(obj);
-        DontDestroyOnLoad(instance);
-        instance.SetActive(false);
+        // Use resourcePath property to build full path
+        string fullPath = path;
         
-        Debug.Log($"创建了预制体: {path}");
-        return instance;
+        // If path doesn't start with resourcePath, add resourcePath prefix
+        if (!string.IsNullOrEmpty(resourcePath) && !path.StartsWith(resourcePath))
+        {
+            // Remove any existing "tower/" prefix from path
+            string cleanPath = path;
+            if (path.StartsWith("tower/"))
+            {
+                cleanPath = path.Substring(6); // Remove "tower/"
+            }
+            
+            // Build new path
+            fullPath = resourcePath + "/" + cleanPath;
+        }
+        
+        // At runtime, we can't actually save prefabs, but can store objects in global manager
+        // This just simulates the prefab saving process
+        
+        Debug.Log($"Simulating prefab save: {fullPath}");
+        
+        // In actual project, could use Resources.Load to load prefabs
+        // Or use a prefab pool manager to handle these objects
+        
+        return obj;
     }
-} 
+}

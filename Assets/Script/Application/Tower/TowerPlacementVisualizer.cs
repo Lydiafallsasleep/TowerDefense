@@ -110,10 +110,16 @@ public class TowerPlacementVisualizer : MonoBehaviour
         // 初始化选择光标
         InitializeSelectionCursor();
         
-        // 初始隐藏建造按钮面板
+        // 确保建造按钮面板一直可见
         if (buildButtonsPanel != null)
         {
-            buildButtonsPanel.SetActive(false);
+            buildButtonsPanel.SetActive(true);
+        }
+        
+        // 获取TowerManager实例
+        if (towerManager == null)
+        {
+            towerManager = TowerManager.Instance;
         }
     }
     
@@ -136,6 +142,9 @@ public class TowerPlacementVisualizer : MonoBehaviour
         {
             UpdateDebugInfo();
         }
+        
+        // 更新建造按钮状态
+        UpdateBuildButtonsState();
     }
     
     // 在屏幕上绘制调试信息
@@ -221,7 +230,7 @@ public class TowerPlacementVisualizer : MonoBehaviour
         
         foreach (TowerPlacementPoint point in placementManager.placementPoints)
         {
-            if (point == null) continue;
+            if (point == null || !point.isEnabled) continue;
             
             // 检查是否已有视觉指示器
             GameObject visual = null;
@@ -392,6 +401,13 @@ public class TowerPlacementVisualizer : MonoBehaviour
     // 检测鼠标点击
     private void CheckMouseClick()
     {
+        // 如果点击位于UI上，直接忽略，防止误清除选中
+        if (UnityEngine.EventSystems.EventSystem.current != null &&
+            UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+        {
+            return;
+        }
+
         // 如果点击了鼠标左键
         if (Input.GetMouseButtonDown(0))
         {
@@ -405,28 +421,28 @@ public class TowerPlacementVisualizer : MonoBehaviour
                 selectedPoint = nearestPoint;
                 
                 // 显示建造按钮面板
-                ShowBuildButtonsPanel();
+                //ShowBuildButtonsPanel();
                 
                 // 通知塔管理器选中了放置点
                 if (towerManager != null)
                 {
-                    towerManager.OnPlacementPointSelected(selectedPoint);
+                    towerManager.SelectPlacementPoint(selectedPoint);
                 }
                 
                 // 在控制台输出选中信息
-                Debug.Log($"选中了放置点: {nearestPoint.pointID}, 位置: {nearestPoint.transform.position}");
+                Debug.Log($"选中了放置点: {nearestPoint.pointID}, 位置: {nearestPoint.transform.position}，是否可用{nearestPoint.isEnabled},{nearestPoint.isOccupied}");
             }
             else if (!IsPointerOverUI())
             {
                 // 如果点击了空白区域，隐藏选择光标和建造按钮
                 HideSelectionCursor();
-                HideBuildButtonsPanel();
+                //HideBuildButtonsPanel();
                 selectedPoint = null;
                 
                 // 通知塔管理器取消选中
                 if (towerManager != null)
                 {
-                    towerManager.OnPlacementPointDeselected();
+                    towerManager.DeselectPlacementPoint();
                 }
             }
         }
@@ -499,7 +515,7 @@ public class TowerPlacementVisualizer : MonoBehaviour
         
         foreach (TowerPlacementPoint point in placementManager.placementPoints)
         {
-            if (point == null || !point.isEnabled || point.isOccupied) continue;
+            if (point == null || !point.isEnabled) continue;
             
             // 只计算XY平面上的距离，忽略Z轴
             float dx = worldPosition.x - point.transform.position.x;
@@ -655,12 +671,11 @@ public class TowerPlacementVisualizer : MonoBehaviour
     {
         selectedPoint = null;
         HideSelectionCursor();
-        HideBuildButtonsPanel();
         
         // 通知塔管理器取消选中
         if (towerManager != null)
         {
-            towerManager.OnPlacementPointDeselected();
+            towerManager.DeselectPlacementPoint();
         }
     }
     
@@ -725,115 +740,108 @@ public class TowerPlacementVisualizer : MonoBehaviour
         }
     }
     
-    // 显示建造按钮面板
-    private void ShowBuildButtonsPanel()
-    {
-        if (buildButtonsPanel != null)
-        {
-            buildButtonsPanel.SetActive(true);
-            
-            // 检查是否有足够的金币建造各类塔
-            if (towerManager != null)
-            {
-                // 箭塔按钮
-                if (arrowTowerButton != null)
-                {
-                    arrowTowerButton.interactable = towerManager.CanPlaceTowerAtPoint(selectedPoint) && 
-                                                   HasEnoughGold(TowerType.Arrow);
-                }
-                
-                // 炮塔按钮
-                if (cannonTowerButton != null)
-                {
-                    cannonTowerButton.interactable = towerManager.CanPlaceTowerAtPoint(selectedPoint) && 
-                                                    HasEnoughGold(TowerType.Cannon);
-                }
-                
-                // 激光塔按钮
-                if (laserTowerButton != null)
-                {
-                    laserTowerButton.interactable = towerManager.CanPlaceTowerAtPoint(selectedPoint) && 
-                                                   HasEnoughGold(TowerType.Laser);
-                }
-            }
-        }
-    }
-    
-    // 隐藏建造按钮面板
-    private void HideBuildButtonsPanel()
-    {
-        if (buildButtonsPanel != null)
-        {
-            buildButtonsPanel.SetActive(false);
-        }
-    }
-    
     // 建造塔
     private void BuildTower(TowerType towerType)
     {
+        Debug.Log("[TowerPlacementVisualizer] BuildTower: 准备建造塔类型 " + towerType + " 在点 " + 
+            (selectedPoint != null ? selectedPoint.pointID : "null"));
+
         if (selectedPoint != null && towerManager != null)
         {
+            Debug.Log("[TowerPlacementVisualizer] BuildTower: 选择塔类型 " + towerType);
+            // 确保TowerManager也知道选中了哪个点
+            towerManager.SelectPlacementPoint(selectedPoint);
+            
             // 选择塔类型
             towerManager.SelectTowerType(towerType);
             
+            Debug.Log("[TowerPlacementVisualizer] BuildTower: 调用 BuildTowerOnSelectedPoint()");
             // 建造塔
             towerManager.BuildTowerOnSelectedPoint();
             
-            // 隐藏选择光标和建造按钮
+            Debug.Log("[TowerPlacementVisualizer] BuildTower: 清理UI，隐藏光标");
+            // 隐藏选择光标，但保持建造按钮面板可见
             HideSelectionCursor();
-            HideBuildButtonsPanel();
             selectedPoint = null;
+        }
+        else
+        {
+            Debug.LogWarning("[TowerPlacementVisualizer] BuildTower: 无法建造 - " + 
+                (selectedPoint == null ? "selectedPoint为null" : "towerManager为null"));
         }
     }
     
     // 检查是否有足够的金币建造指定类型的塔
-    private bool HasEnoughGold(TowerType towerType)
+    private bool HasEnoughGoldForTower(TowerType towerType)
     {
-        if (towerManager != null)
+        int cost = 0;
+        switch (towerType)
         {
-            int cost = 0;
+            case TowerType.Arrow:
+                GameObject arrowPrefab = towerManager.arrowTowerPrefab;
+                if (arrowPrefab != null)
+                {
+                    BaseTower tower = arrowPrefab.GetComponent<BaseTower>();
+                    if (tower != null)
+                    {
+                        cost = tower.cost;
+                    }
+                }
+                break;
+            case TowerType.Cannon:
+                GameObject cannonPrefab = towerManager.cannonTowerPrefab;
+                if (cannonPrefab != null)
+                {
+                    BaseTower tower = cannonPrefab.GetComponent<BaseTower>();
+                    if (tower != null)
+                    {
+                        cost = tower.cost;
+                    }
+                }
+                break;
+            case TowerType.Laser:
+                GameObject laserPrefab = towerManager.laserTowerPrefab;
+                if (laserPrefab != null)
+                {
+                    BaseTower tower = laserPrefab.GetComponent<BaseTower>();
+                    if (tower != null)
+                    {
+                        cost = tower.cost;
+                    }
+                }
+                break;
+        }
+        if (CoinManager.Instance != null)
+        {
+            return CoinManager.Instance.HasEnoughCoins(cost);
+        }
+        return false;
+    }
+    
+    // 更新建造按钮状态
+    private void UpdateBuildButtonsState()
+    {
+        if (buildButtonsPanel != null && towerManager != null)
+        {
+            bool canBuildAtPoint = selectedPoint != null && towerManager.CanPlaceTowerAtPoint(selectedPoint);
             
-            // 根据塔类型获取建造成本
-            switch (towerType)
+            // 箭塔按钮
+            if (arrowTowerButton != null)
             {
-                case TowerType.Arrow:
-                    GameObject arrowPrefab = towerManager.arrowTowerPrefab;
-                    if (arrowPrefab != null)
-                    {
-                        BaseTower tower = arrowPrefab.GetComponent<BaseTower>();
-                        if (tower != null)
-                        {
-                            cost = tower.buildCost;
-                        }
-                    }
-                    break;
-                case TowerType.Cannon:
-                    GameObject cannonPrefab = towerManager.cannonTowerPrefab;
-                    if (cannonPrefab != null)
-                    {
-                        BaseTower tower = cannonPrefab.GetComponent<BaseTower>();
-                        if (tower != null)
-                        {
-                            cost = tower.buildCost;
-                        }
-                    }
-                    break;
-                case TowerType.Laser:
-                    GameObject laserPrefab = towerManager.laserTowerPrefab;
-                    if (laserPrefab != null)
-                    {
-                        BaseTower tower = laserPrefab.GetComponent<BaseTower>();
-                        if (tower != null)
-                        {
-                            cost = tower.buildCost;
-                        }
-                    }
-                    break;
+                arrowTowerButton.interactable = canBuildAtPoint && HasEnoughGoldForTower(TowerType.Arrow);
             }
             
-            return towerManager.currentGold >= cost;
+            // 炮塔按钮
+            if (cannonTowerButton != null)
+            {
+                cannonTowerButton.interactable = canBuildAtPoint && HasEnoughGoldForTower(TowerType.Cannon);
+            }
+            
+            // 激光塔按钮
+            if (laserTowerButton != null)
+            {
+                laserTowerButton.interactable = canBuildAtPoint && HasEnoughGoldForTower(TowerType.Laser);
+            }
         }
-        
-        return false;
     }
 } 

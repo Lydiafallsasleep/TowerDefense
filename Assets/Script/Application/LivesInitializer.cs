@@ -3,28 +3,26 @@ using TMPro;
 using UnityEngine.UI;
 
 /// <summary>
-/// 生命值初始化辅助组件，确保生命值显示正确初始化
+/// Lives initializer helper component, ensures that lives display is correctly initialized
 /// </summary>
 public class LivesInitializer : MonoBehaviour
 {
-    [Header("引用设置")]
+    [Header("Reference Settings")]
     public PlayerHealth playerHealth;
     public LivesDisplay livesDisplay;
     public TextMeshProUGUI livesTMP;
     public Text livesText;
     
-    [Header("初始值设置")]
+    [Header("Initial Value Settings")]
     public int initialLives = 10;
     public int maxLives = 10;
-    public string prefixText = "生命: ";
+    public string prefixText = "Lives: ";
     
-    [Header("执行设置")]
+    [Header("Execution Settings")]
     public bool initializeOnAwake = true;
     public bool initializeOnStart = true;
     public bool initializeOnEnable = true;
     public float initializationDelay = 0.1f;
-    
-    private bool initialized = false;
     
     void Awake()
     {
@@ -41,7 +39,7 @@ public class LivesInitializer : MonoBehaviour
             Initialize();
         }
         
-        // 延迟初始化，确保所有组件都已准备好
+        // Delayed initialization to ensure all components are ready
         if (initializationDelay > 0)
         {
             Invoke("DelayedInitialize", initializationDelay);
@@ -57,120 +55,118 @@ public class LivesInitializer : MonoBehaviour
     }
     
     /// <summary>
-    /// 初始化生命值显示
+    /// Initialize lives display
     /// </summary>
     public void Initialize()
     {
-        Debug.Log("[LivesInitializer] 开始初始化生命值显示");
+        Debug.Log("[LivesInitializer] Starting to initialize lives display");
         
-        // 查找引用（如果尚未设置）
+        // Find references (if not set yet)
         FindReferences();
         
-        // 初始化PlayerHealth
+        // Initialize PlayerHealth
         if (playerHealth != null)
         {
-            Debug.Log($"[LivesInitializer] 设置PlayerHealth生命值: {initialLives}/{maxLives}");
+            Debug.Log($"[LivesInitializer] Setting PlayerHealth lives: {initialLives}/{maxLives}");
             playerHealth.SetLives(initialLives);
         }
         
-        // 初始化LivesDisplay
+        // Initialize LivesDisplay
         if (livesDisplay != null)
         {
-            Debug.Log("[LivesInitializer] 强制更新LivesDisplay");
+            Debug.Log("[LivesInitializer] Force updating LivesDisplay");
             livesDisplay.ForceUpdateDisplay();
         }
         
-        // 直接设置文本（作为备用方案）
+        // Directly set text (as a fallback)
         string displayText = $"{prefixText}{initialLives}/{maxLives}";
         
         if (livesTMP != null)
         {
-            Debug.Log($"[LivesInitializer] 直接设置TMP文本: {displayText}");
+            Debug.Log($"[LivesInitializer] Directly setting TMP text: {displayText}");
             livesTMP.text = displayText;
         }
         
         if (livesText != null)
         {
-            Debug.Log($"[LivesInitializer] 直接设置Text文本: {displayText}");
+            Debug.Log($"[LivesInitializer] Directly setting Text text: {displayText}");
             livesText.text = displayText;
         }
-        
-        initialized = true;
     }
     
     /// <summary>
-    /// 延迟初始化
+    /// Delayed initialization
     /// </summary>
     private void DelayedInitialize()
     {
-        Debug.Log("[LivesInitializer] 执行延迟初始化");
+        Debug.Log("[LivesInitializer] Executing delayed initialization");
         Initialize();
     }
     
     /// <summary>
-    /// 查找引用
+    /// Find references
     /// </summary>
     private void FindReferences()
     {
-        // 查找PlayerHealth（如果尚未设置）
+        // Find PlayerHealth (if not set yet)
         if (playerHealth == null)
         {
             playerHealth = FindObjectOfType<PlayerHealth>();
             Debug.Log(playerHealth != null 
-                ? "[LivesInitializer] 找到PlayerHealth组件" 
-                : "[LivesInitializer] 未找到PlayerHealth组件");
+                ? "[LivesInitializer] Found PlayerHealth component" 
+                : "[LivesInitializer] PlayerHealth component not found");
         }
         
-        // 查找LivesDisplay（如果尚未设置）
+        // Find LivesDisplay (if not set yet)
         if (livesDisplay == null)
         {
             livesDisplay = FindObjectOfType<LivesDisplay>();
             Debug.Log(livesDisplay != null 
-                ? "[LivesInitializer] 找到LivesDisplay组件" 
-                : "[LivesInitializer] 未找到LivesDisplay组件");
+                ? "[LivesInitializer] Found LivesDisplay component" 
+                : "[LivesInitializer] LivesDisplay component not found");
         }
         
-        // 查找TextMeshPro（如果尚未设置）
+        // Find TextMeshPro (if not set yet)
         if (livesTMP == null)
         {
             if (livesDisplay != null && livesDisplay.livesTMP != null)
             {
                 livesTMP = livesDisplay.livesTMP;
-                Debug.Log("[LivesInitializer] 从LivesDisplay获取TMP引用");
+                Debug.Log("[LivesInitializer] Got TMP reference from LivesDisplay");
             }
             else
             {
                 livesTMP = GetComponentInChildren<TextMeshProUGUI>();
                 if (livesTMP == null)
                 {
-                    // 尝试在当前游戏对象或子对象中查找
+                    // Try to find in current GameObject or child objects
                     livesTMP = FindObjectOfType<TextMeshProUGUI>();
                 }
                 Debug.Log(livesTMP != null 
-                    ? "[LivesInitializer] 找到TMP组件" 
-                    : "[LivesInitializer] 未找到TMP组件");
+                    ? "[LivesInitializer] Found TMP component" 
+                    : "[LivesInitializer] TMP component not found");
             }
         }
         
-        // 查找Text（如果尚未设置）
+        // Find Text (if not set yet)
         if (livesText == null)
         {
             if (livesDisplay != null && livesDisplay.livesText != null)
             {
                 livesText = livesDisplay.livesText;
-                Debug.Log("[LivesInitializer] 从LivesDisplay获取Text引用");
+                Debug.Log("[LivesInitializer] Got Text reference from LivesDisplay");
             }
             else
             {
                 livesText = GetComponentInChildren<Text>();
                 if (livesText == null)
                 {
-                    // 尝试在当前游戏对象或子对象中查找
+                    // Try to find in current GameObject or child objects
                     livesText = FindObjectOfType<Text>();
                 }
                 Debug.Log(livesText != null 
-                    ? "[LivesInitializer] 找到Text组件" 
-                    : "[LivesInitializer] 未找到Text组件");
+                    ? "[LivesInitializer] Found Text component" 
+                    : "[LivesInitializer] Text component not found");
             }
         }
     }

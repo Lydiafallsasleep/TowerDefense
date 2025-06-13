@@ -22,7 +22,6 @@ public class EnemySpawnDebugger : MonoBehaviour
     [TextArea(3, 8)]
     public string debugInfo = "";
     private List<string> debugLog = new List<string>();
-    private bool resourcesReloaded = false;
     
     void Start()
     {
@@ -136,7 +135,7 @@ public class EnemySpawnDebugger : MonoBehaviour
         CheckResourcePath("Slime");
         CheckResourcePath("Fish");
         
-        resourcesReloaded = true;
+        LogDebug("资源重新加载完成");
     }
     
     // 检查资源路径

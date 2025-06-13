@@ -1,100 +1,206 @@
 using UnityEngine;
 
+/// <summary>
+/// Projectile class, handles movement and collision of arrows, cannonballs and other projectiles
+/// </summary>
 public class Projectile : MonoBehaviour
 {
-    public float damage = 10f;
+    [Header("Basic Settings")]
     public float speed = 20f;
-    public float explosionRadius = 0f; // 爆炸半径，0表示无爆炸
-    public bool hasSlowEffect = false; // 减速效果
-    public float slowFactor = 0.5f;   // 减速因子
-    public float slowDuration = 1f;   // 减速持续时间
+    public float damage = 10f;
+    public float lifeTime = 3f;
+    public bool useGravity = false;
+    public float gravityScale = 1f;
+    public float explosionRadius = 0f; // Explosion radius, 0 means no explosion effect
     
-    protected Transform target;
-
-    public void Seek(Transform _target)
+    [Header("Visual Effects")]
+    public GameObject impactEffect;
+    public bool useTrailEffect = true;
+    
+    private GameObject target;
+    private Vector3 targetLastPosition;
+    private Rigidbody2D rb;
+    private float timer = 0f;
+    private bool hasHit = false;
+    private GameObject trailEffect;
+    
+    void Awake()
     {
-        target = _target;
+        rb = GetComponent<Rigidbody2D>();
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody2D>();
+        }
+        
+        rb.gravityScale = useGravity ? gravityScale : 0f;
+        rb.isKinematic = !useGravity;
+    }
+    
+    void Start()
+    {
+        // Add trail effect
+        if (useTrailEffect)
+        {
+            // Use particle effect manager to add trail
+            if (TowerParticleEffects.Instance != null)
+            {
+                // Choose different trail effects based on projectile type
+                if (gameObject.name.Contains("Arrow"))
+                {
+                    trailEffect = TowerParticleEffects.Instance.AddArrowTrailEffect(gameObject);
+                }
+                else if (gameObject.name.Contains("Cannon"))
+    {
+                    trailEffect = TowerParticleEffects.Instance.AddCannonballTrailEffect(gameObject);
+                }
+            }
+        }
     }
 
     void Update()
     {
-        if (target == null)
+        // If already hit target, don't update
+        if (hasHit)
+            return;
+            
+        // Lifetime timer
+        timer += Time.deltaTime;
+        if (timer >= lifeTime)
         {
             Destroy(gameObject);
             return;
         }
 
-        // 移动逻辑
-        Vector3 dir = target.position - transform.position;
-        float distanceThisFrame = speed * Time.deltaTime;
-
-        if (dir.magnitude <= distanceThisFrame)
+        // If target exists, track it
+        if (target != null && target.activeSelf)
         {
-            HitTarget();
-            return;
-        }
-
-        transform.Translate(dir.normalized * distanceThisFrame, Space.World);
+            targetLastPosition = target.transform.position;
         
-        // 2D游戏中使用LookAt2D
-        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-        transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
-    }
-    
-    // 改为protected virtual方法
-    protected virtual void HitTarget()
-    {
-        if (explosionRadius > 0f)
-        {
-            Explode(); // 爆炸伤害
+            // Calculate direction
+            Vector3 dir = (targetLastPosition - transform.position).normalized;
+        
+            // Set velocity
+            if (!useGravity)
+            {
+                rb.velocity = dir * speed;
+            }
+            
+            // Rotate projectile towards target
+            float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.Euler(0, 0, angle);
         }
         else
         {
-            Damage(target); // 单体伤害
-        }
-
-        Destroy(gameObject);
-    }
-
-    // 改为protected virtual方法
-    protected virtual void Explode()
-    {
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
-        foreach (Collider2D collider in colliders)
+            // If target doesn't exist, continue moving in current direction
+            if (!useGravity && rb.velocity.magnitude < 0.1f)
         {
-            if (collider.CompareTag("Enemy"))
-            {
-                Damage(collider.transform);
+                // If velocity is too small, give a default direction
+                rb.velocity = transform.right * speed;
             }
         }
     }
-
-    // 修改为protected virtual方法，以便子类可以重写
-    protected virtual void Damage(Transform enemy)
+    
+    /// <summary>
+    /// Initialize projectile
+    /// </summary>
+    public void Initialize(GameObject target, float damage)
     {
-        EnemyHealth enemyHealth = enemy.GetComponent<EnemyHealth>();
-        if (enemyHealth != null)
+        this.target = target;
+        this.damage = damage;
+        
+        if (target != null)
         {
-            enemyHealth.TakeDamage(damage);
+            targetLastPosition = target.transform.position;
+            
+            // Calculate initial direction
+            Vector3 dir = (targetLastPosition - transform.position).normalized;
+            
+            // Set initial velocity
+            rb.velocity = dir * speed;
+            
+            // Set initial rotation
+            float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+            transform.rotation = Quaternion.Euler(0, 0, angle);
+        }
     }
-
-        // 应用减速效果
-        if (hasSlowEffect)
+    
+    /// <summary>
+    /// Set projectile speed
+    /// </summary>
+    public void SetSpeed(float newSpeed)
+    {
+        speed = newSpeed;
+    }
+    
+    /// <summary>
+    /// Set projectile gravity
+    /// </summary>
+    public void SetGravity(bool useGrav, float scale = 1f)
         {
-            EnemyMovement movement = enemy.GetComponent<EnemyMovement>();
-            if (movement != null)
+        useGravity = useGrav;
+        gravityScale = scale;
+        rb.gravityScale = useGravity ? gravityScale : 0f;
+    }
+    
+    void OnTriggerEnter2D(Collider2D other)
+        {
+        // If already hit, don't process
+        if (hasHit)
+            return;
+            
+        // Check if hit an enemy
+        if (other.CompareTag("Enemy"))
+        {
+            // Mark as hit
+            hasHit = true;
+            
+            // Deal damage to enemy
+            EnemyHealth health = other.GetComponent<EnemyHealth>();
+                if (health != null)
             {
-                movement.ApplySlow(slowFactor, slowDuration);
+                    health.TakeDamage(damage);
+                }
+            
+            // Play hit effect
+            if (TowerParticleEffects.Instance != null)
+            {
+                // Choose different hit effects based on projectile type
+                if (gameObject.name.Contains("Arrow"))
+            {
+                    TowerParticleEffects.Instance.PlayArrowImpactEffect(transform.position);
+                }
+                else if (gameObject.name.Contains("Cannon"))
+                {
+                    TowerParticleEffects.Instance.PlayExplosionEffect(transform.position, 0.7f);
             }
+            }
+            else if (impactEffect != null)
+            {
+                // Use traditional way to create hit effect
+                Instantiate(impactEffect, transform.position, Quaternion.identity);
+            }
+            
+            // Destroy projectile
+            Destroy(gameObject);
+        }
+    }
+    
+    void OnDestroy()
+    {
+        // Clean up resources
+        if (trailEffect != null)
+        {
+            Destroy(trailEffect);
         }
     }
     
     void OnDrawGizmosSelected()
     {
-        if (explosionRadius > 0)
+        // Draw projectile path prediction
+        if (target != null)
         {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(transform.position, explosionRadius);
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawLine(transform.position, target.transform.position);
         }
     }
 } 

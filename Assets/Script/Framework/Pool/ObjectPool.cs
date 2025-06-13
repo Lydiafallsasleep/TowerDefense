@@ -6,8 +6,8 @@ public class ObjectPool : Singleton<ObjectPool>
 {
     public string ResourceDir = "";
     
-    // 添加调试开关
-    [Header("调试设置")]
+    // Add debug switch
+    [Header("Debug Settings")]
     public bool enableDebugLogs = true;
 
     Dictionary<string, SubPool> poolDict = new Dictionary<string, SubPool>();
@@ -15,64 +15,64 @@ public class ObjectPool : Singleton<ObjectPool>
 
     void Start()
     {
-        // 在启动时输出调试信息
+        // Output debug information at startup
         DebugAvailableResources();
     }
     
-    // 调试函数，列出所有可访问的Resources资源
+    // Debug function, list all accessible Resources
     public void DebugAvailableResources()
     {
         if (!enableDebugLogs) return;
         
-        Debug.Log("===== ObjectPool资源诊断 =====");
+        Debug.Log("===== ObjectPool Resource Diagnostics =====");
         
-        // 尝试加载enemy文件夹下的所有预制体
+        // Try to load all prefabs in the enemy folder
         Object[] allEnemyObjs = Resources.LoadAll("enemy", typeof(GameObject));
-        Debug.Log($"在enemy文件夹下找到{allEnemyObjs.Length}个GameObject资源:");
+        Debug.Log($"Found {allEnemyObjs.Length} GameObject resources in the enemy folder:");
         
         foreach (Object obj in allEnemyObjs)
         {
             Debug.Log($" - {obj.name} ({obj.GetType().Name})");
         }
         
-        // 直接尝试加载Slime和Fish
+        // Directly try to load Slime and Fish
         TryLoadAndReportPrefab("enemy/Slime");
         TryLoadAndReportPrefab("enemy/Fish");
         TryLoadAndReportPrefab("Slime");
         TryLoadAndReportPrefab("Fish");
         
-        Debug.Log("===== 资源诊断结束 =====");
+        Debug.Log("===== Resource Diagnostics End =====");
     }
     
-    // 尝试加载并报告结果
+    // Try to load and report results
     private void TryLoadAndReportPrefab(string path)
     {
         GameObject prefab = Resources.Load<GameObject>(path);
-        Debug.Log($"Resources.Load<GameObject>(\"{path}\") 结果: {(prefab != null ? "成功" : "失败")}");
+        Debug.Log($"Resources.Load<GameObject>(\"{path}\") result: {(prefab != null ? "Success" : "Failed")}");
     }
 
     public GameObject OnSpawn(string name)
     {
         if (enableDebugLogs)
         {
-            Debug.Log($"尝试从对象池获取: {name}");
+            Debug.Log($"Trying to get from object pool: {name}");
         }
         
         if (!poolDict.ContainsKey(name))
         {
             if (enableDebugLogs)
             {
-                Debug.Log($"对象池中不存在{name}，尝试注册...");
+                Debug.Log($"Object pool for {name} doesn't exist, trying to register...");
             }
             RegisterSubPool(name);
         }
         
-        // 确保池存在，即使RegisterSubPool可能因为缺少预制体而失败
+        // Ensure the pool exists, even if RegisterSubPool might fail due to missing prefab
         if (!poolDict.ContainsKey(name))
         {
-            Debug.LogError($"无法创建对象池: {name}，将创建临时对象");
+            Debug.LogError($"Unable to create object pool: {name}, will create temporary object");
             CreateTemporaryPrefab(name);
-            // 再次尝试注册
+            // Try to register again
             RegisterSubPool(name);
         }
         
@@ -82,10 +82,10 @@ public class ObjectPool : Singleton<ObjectPool>
 
     public void OnDespawn(GameObject go)
     {
-        // 参数安全检查
+        // Parameter safety check
         if (go == null)
         {
-            Debug.LogError("尝试回收null对象！");
+            Debug.LogError("Trying to recycle null object!");
             return;
         }
 
@@ -99,16 +99,22 @@ public class ObjectPool : Singleton<ObjectPool>
             }
         }
 
-        // 检查是否找到了对应的对象池
+        // Check if corresponding object pool was found
         if (pool != null)
         {
             pool.OnDespawn(go);
         }
         else
         {
-            Debug.LogWarning($"未找到对象 {go.name} 所属的对象池，直接禁用该对象");
+            Debug.LogWarning($"Object pool for {go.name} not found, directly disabling the object");
             go.SetActive(false);
         }
+    }
+
+    // Method added for compatibility, functions the same as OnDespawn
+    public void OnUnspawn(GameObject go)
+    {
+        OnDespawn(go);
     }
 
     public void RecycleAll()
@@ -121,46 +127,46 @@ public class ObjectPool : Singleton<ObjectPool>
 
     void RegisterSubPool(string name)
     {
-        // 尝试多种路径格式
-        Debug.Log($"尝试为{name}注册对象池，ResourceDir={ResourceDir}");
+        // Try multiple path formats
+        Debug.Log($"Trying to register object pool for {name}, ResourceDir={ResourceDir}");
         
         GameObject prefab = null;
         List<string> pathsToTry = new List<string>
         {
-            "enemy/" + name,           // 直接用enemy文件夹: enemy/Slime
-            name,                      // 直接名称: Slime
-            name.ToLower(),            // 小写名称: slime
-            "enemy/" + name.ToLower(), // 小写完整路径: enemy/slime
-            ResourceDir + (string.IsNullOrEmpty(ResourceDir) ? "" : "/") + name  // 使用配置的ResourceDir
+            "enemy/" + name,           // Direct enemy folder: enemy/Slime
+            name,                      // Direct name: Slime
+            name.ToLower(),            // Lowercase name: slime
+            "enemy/" + name.ToLower(), // Lowercase full path: enemy/slime
+            ResourceDir + (string.IsNullOrEmpty(ResourceDir) ? "" : "/") + name  // Use configured ResourceDir
         };
         
-        // 尝试所有可能的路径
+        // Try all possible paths
         foreach (string path in pathsToTry)
         {
             if (enableDebugLogs)
             {
-                Debug.Log($"尝试加载预制体: {path}");
+                Debug.Log($"Trying to load prefab: {path}");
             }
             
             prefab = Resources.Load<GameObject>(path);
             if (prefab != null)
             {
-                Debug.Log($"成功从路径加载预制体: {path}");
+                Debug.Log($"Successfully loaded prefab from path: {path}");
                 break;
             }
         }
         
-        // 如果加载失败，检查临时预制体
+        // If loading fails, check temporary prefabs
         if (prefab == null && tempPrefabs.ContainsKey(name))
         {
-            Debug.LogWarning($"从Resources加载预制体失败，使用临时预制体: {name}");
+            Debug.LogWarning($"Failed to load prefab from Resources, using temporary prefab: {name}");
             prefab = tempPrefabs[name];
         }
         
-        // 如果仍为null，创建临时预制体
+        // If still null, create temporary prefab
         if (prefab == null)
         {
-            Debug.LogError($"无法加载预制体，创建临时预制体: {name}");
+            Debug.LogError($"Unable to load prefab, creating temporary prefab: {name}");
             prefab = CreateTemporaryPrefab(name);
         }
         
@@ -168,37 +174,37 @@ public class ObjectPool : Singleton<ObjectPool>
         {
         SubPool pool = new SubPool(prefab);
         poolDict.Add(name, pool);
-            Debug.Log($"成功为 {name} 注册对象池");
+            Debug.Log($"Successfully registered object pool for {name}");
         }
         else
         {
-            Debug.LogError($"无法为 {name} 创建对象池：预制体仍为null");
+            Debug.LogError($"Cannot create object pool for {name}: prefab is still null");
         }
     }
     
-    // 创建临时预制体
+    // Create temporary prefab
     private GameObject CreateTemporaryPrefab(string name)
     {
-        Debug.Log($"创建临时预制体: {name}");
+        Debug.Log($"Creating temporary prefab: {name}");
         
-        // 检查是否已存在
+        // Check if already exists
         if (tempPrefabs.ContainsKey(name))
         {
             return tempPrefabs[name];
         }
         
-        // 创建简单预制体
+        // Create simple prefab
         GameObject tempObj = new GameObject(name + "_TempPrefab");
         
-        // 添加组件
+        // Add components
         if (name == "Slime" || name == "Fish")
         {
-            // 添加基本组件
+            // Add basic components
             tempObj.AddComponent<SpriteRenderer>();
             var rb = tempObj.AddComponent<Rigidbody2D>();
             rb.gravityScale = 0f;
             
-            // 添加敌人组件
+            // Add enemy components
             var movement = tempObj.AddComponent<EnemyMovement>();
             movement.monsterType = name == "Slime" ? 
                 EnemyMovement.MonsterType.Slime : EnemyMovement.MonsterType.Fish;
@@ -206,21 +212,21 @@ public class ObjectPool : Singleton<ObjectPool>
             tempObj.AddComponent<EnemyHealth>();
             tempObj.AddComponent<EnemyPoolObject>();
             
-            // 设置标签
+            // Set tag
             tempObj.tag = "Enemy";
             
-            // 设置颜色
+            // Set color
             var renderer = tempObj.GetComponent<SpriteRenderer>();
             renderer.color = name == "Slime" ? Color.green : Color.blue;
             
-            Debug.Log($"已创建临时{name}预制体");
+            Debug.Log($"Created temporary {name} prefab");
         }
         
-        // 隐藏对象并防止销毁
+        // Hide object and prevent destruction
         tempObj.SetActive(false);
         DontDestroyOnLoad(tempObj);
         
-        // 保存引用
+        // Save reference
         tempPrefabs[name] = tempObj;
         
         return tempObj;

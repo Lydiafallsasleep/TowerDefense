@@ -29,6 +29,7 @@ public class EnemyHealth : MonoBehaviour
     private SpriteRenderer spriteRenderer;
     private GameObject healthBarInstance;
     private Slider healthSlider;
+    private EnemyHealthBar healthBar;  // 新增的健康条引用
     private WaveManager waveManager;
     private GameManager gameManager;
     
@@ -97,12 +98,28 @@ public class EnemyHealth : MonoBehaviour
             healthBarInstance.transform.localScale = new Vector3(healthBarScale, healthBarScale, 1f);
             healthBarInstance.transform.SetParent(transform);
             
-            healthSlider = healthBarInstance.GetComponentInChildren<Slider>();
-            if (healthSlider != null)
+            // 获取健康条组件
+            healthBar = healthBarInstance.GetComponent<EnemyHealthBar>();
+            if (healthBar == null)
             {
-                healthSlider.maxValue = currentHealth;
-                healthSlider.value = currentHealth;
+                healthBar = healthBarInstance.AddComponent<EnemyHealthBar>();
             }
+            
+            // 获取滑块组件（向后兼容）
+            healthSlider = healthBarInstance.GetComponentInChildren<Slider>();
+            if (healthSlider != null && healthBar.healthSlider == null)
+    {
+                healthBar.healthSlider = healthSlider;
+            }
+            
+            // 获取填充图像
+            if (healthSlider != null && healthBar.fillImage == null)
+            {
+                healthBar.fillImage = healthSlider.fillRect.GetComponent<Image>();
+            }
+            
+            // 初始化血条
+            healthBar.UpdateHealthBar();
         }
     }
     
@@ -111,6 +128,14 @@ public class EnemyHealth : MonoBehaviour
     /// </summary>
     private void UpdateHealthBar()
     {
+        // 优先使用新的健康条组件
+        if (healthBar != null)
+        {
+            healthBar.UpdateHealthBar();
+            return;
+        }
+        
+        // 向后兼容：使用旧的滑块
         if (healthSlider != null)
         {
             healthSlider.maxValue = baseHealth * healthMultiplier;
@@ -130,7 +155,7 @@ public class EnemyHealth : MonoBehaviour
         }
         
         // 增大体型
-        transform.localScale *= eliteScale;
+        transform.localScale = new Vector3(eliteScale, eliteScale, 1f);
         
         // 增加生命值显示大小
         if (healthBarInstance != null)
@@ -152,8 +177,17 @@ public class EnemyHealth : MonoBehaviour
         // 更新生命值条
         UpdateHealthBar();
         
-        // 显示受击效果
-        StartCoroutine(ShowHitEffect());
+        // 触发血条受伤效果
+        if (healthBar != null)
+        {
+            healthBar.TriggerDamageEffect();
+        }
+        
+        // 显示受击效果 - 只在对象激活时启动协程
+        if (gameObject.activeInHierarchy)
+        {
+            StartCoroutine(ShowHitEffect());
+        }
         
         // 检查是否死亡
         if (currentHealth <= 0)
@@ -207,11 +241,18 @@ public class EnemyHealth : MonoBehaviour
         }
         
         // 增加分数和金币
-        if (gameManager != null)
+        if (CoinManager.Instance != null)
         {
             int scoreValue = isElite ? 20 : 10;
             int goldValue = isElite ? 15 : 5;
-            
+            CoinManager.Instance.AddCoins(goldValue);
+            if (gameManager != null)
+                gameManager.AddScore(scoreValue);
+        }
+        else if (gameManager != null)
+        {
+            int scoreValue = isElite ? 20 : 10;
+            int goldValue = isElite ? 15 : 5;
             gameManager.AddScore(scoreValue);
             gameManager.AddGold(goldValue);
         }
@@ -285,22 +326,52 @@ public class EnemyHealth : MonoBehaviour
     /// </summary>
     public void ResetState()
     {
-        isDead = false;
-        healthMultiplier = 1f;
-        isElite = false;
+        // 重置生命值
+        currentHealth = baseHealth * healthMultiplier;
         
-        // 恢复原始颜色和大小
+        // 重置死亡状态
+        isDead = false;
+        
+        // 重置颜色
         if (spriteRenderer != null)
-        {
-            spriteRenderer.color = originalColor;
+    {
+            spriteRenderer.color = isElite ? eliteColor : originalColor;
         }
         
-        transform.localScale = Vector3.one;
+        // 更新生命值条
+        UpdateHealthBar();
         
-        // 重新初始化生命值
-        InitializeHealth();
+        Debug.Log($"敌人生命值已重置: {currentHealth}/{baseHealth * healthMultiplier}");
+    }
+    
+    /// <summary>
+    /// 重置敌人生命值
+    /// </summary>
+    public void ResetHealth()
+    {
+        // 重置生命值
+        currentHealth = baseHealth * healthMultiplier;
+        
+        // 重置死亡状态
+        isDead = false;
+        
+        // 更新生命值条
         UpdateHealthBar();
     }
+
+    /// <summary>
+    /// 对目标应用伤害
+    /// </summary>
+    private void ApplyDamage(GameObject target, float damage)
+    {
+    if (target == null) return;
+        
+    EnemyHealth health = target.GetComponent<EnemyHealth>();
+    if (health != null)
+    {
+        health.TakeDamage(damage);
+    }
+}
     
     void OnDisable()
     {

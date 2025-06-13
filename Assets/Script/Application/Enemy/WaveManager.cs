@@ -11,7 +11,7 @@ public class WaveManager : Singleton<WaveManager>
 {
     [Header("波次设置")]
     public int currentWave = 0;
-    public int totalWaves = 10;
+    public int totalWaves = 20;
     public int enemiesPerWave = 10;
     public float timeBetweenWaves = 10f;
     public float timeBetweenEnemies = 1f;
@@ -87,14 +87,19 @@ public class WaveManager : Singleton<WaveManager>
                 StartNextWave();
             }
             
+            // 更新UI
+            UpdateWaveUI();
+            UpdateTimerUI();
+        }
+        // 如果波次正在进行中，也定期更新UI
+        else if (isWaveInProgress)
+        {
+            // 每帧更新UI，确保显示正确
+            UpdateWaveUI();
             UpdateTimerUI();
         }
         
-        // 检查当前波次是否完成
-        if (isWaveInProgress && !isSpawning && enemiesRemaining <= 0)
-        {
-            WaveCompleted();
-        }
+        // 波次完成检查已移至EnemyDefeated方法中
     }
     
     /// <summary>
@@ -135,7 +140,7 @@ public class WaveManager : Singleton<WaveManager>
         // 开始生成敌人
         StartCoroutine(SpawnEnemiesInWave());
         
-        Debug.Log($"[WaveManager] 开始第 {currentWave} 波，敌人数量: {enemiesPerWave}");
+        Debug.Log($"[WaveManager] Starting Wave {currentWave}, Enemy Count: {enemiesRemaining}");
     }
     
     /// <summary>
@@ -198,12 +203,21 @@ public class WaveManager : Singleton<WaveManager>
                     if (isElite)
                     {
                         healthComponent.SetElite(true);
+                        Debug.Log($"[WaveManager] 生成精英敌人: {enemyType}，血量倍率: {healthMultiplier}");
+                    }
+                    else
+                    {
+                        Debug.Log($"[WaveManager] 生成普通敌人: {enemyType}，血量倍率: {healthMultiplier}");
                     }
                 }
                 else
                 {
                     Debug.LogWarning("[WaveManager] 敌人没有EnemyHealth组件，无法设置血量倍率");
                 }
+            }
+            else
+            {
+                Debug.LogError($"[WaveManager] 敌人生成失败: {enemyType}");
             }
         }
         else
@@ -231,15 +245,26 @@ public class WaveManager : Singleton<WaveManager>
         // 如果这是最后一波，触发游戏胜利
         if (currentWave >= totalWaves)
         {
-            GameVictory();
+            // 检查胜利条件
+            if (gameManager != null)
+            {
+                gameManager.CheckVictoryCondition();
+            }
+            else
+            {
+                GameVictory();
+            }
             return;
         }
         
         // 设置下一波的倒计时
         waveTimer = timeBetweenWaves;
+        
+        // 更新UI
+        UpdateWaveUI();
         UpdateTimerUI();
         
-        Debug.Log($"[WaveManager] 第 {currentWave} 波完成，{timeBetweenWaves} 秒后开始下一波");
+        Debug.Log($"[WaveManager] Wave {currentWave} completed, next wave in {timeBetweenWaves} seconds");
     }
     
     /// <summary>
@@ -257,11 +282,11 @@ public class WaveManager : Singleton<WaveManager>
             {
                 if (currentWave >= totalWaves)
                 {
-                    bannerText.text = "所有波次完成！";
+                    bannerText.text = "All Waves Completed!";
                 }
                 else
                 {
-                    bannerText.text = $"第 {currentWave} 波完成！";
+                    bannerText.text = $"Wave {currentWave} Completed!";
                 }
             }
             
@@ -275,7 +300,7 @@ public class WaveManager : Singleton<WaveManager>
     /// </summary>
     private void GameVictory()
     {
-        Debug.Log("[WaveManager] 所有波次完成，游戏胜利！");
+        Debug.Log("[WaveManager] All waves completed, Victory!");
         
         // 通知GameManager游戏胜利
         if (gameManager != null)
@@ -295,7 +320,7 @@ public class WaveManager : Singleton<WaveManager>
     {
         if (waveText != null)
         {
-            waveText.text = $"波次: {currentWave}/{totalWaves}";
+            waveText.text = $"Wave: {currentWave}/{totalWaves}";
         }
     }
     
@@ -308,15 +333,15 @@ public class WaveManager : Singleton<WaveManager>
         {
             if (isWaveInProgress)
             {
-                timerText.text = "进行中...";
+                timerText.text = "In Progress...";
             }
             else if (currentWave >= totalWaves)
             {
-                timerText.text = "已完成";
+                timerText.text = "Completed";
             }
             else
             {
-                timerText.text = $"下一波: {Mathf.CeilToInt(waveTimer)}s";
+                timerText.text = $"Next Wave: {Mathf.CeilToInt(waveTimer)}s";
             }
         }
     }
@@ -349,7 +374,31 @@ public class WaveManager : Singleton<WaveManager>
         if (isWaveInProgress)
         {
             enemiesRemaining--;
+            Debug.Log($"[WaveManager] Enemy defeated, remaining enemies: {enemiesRemaining}, current wave: {currentWave}");
+            
+            // 检查当前波次是否完成
+            if (!isSpawning && enemiesRemaining <= 0)
+            {
+                Debug.Log($"[WaveManager] Wave {currentWave} completed, all enemies defeated");
+                WaveCompleted();
+            }
         }
+    }
+    
+    /// <summary>
+    /// 检查是否所有波次都已完成
+    /// </summary>
+    /// <returns>如果所有波次都已完成，则返回true</returns>
+    public bool AreAllWavesCompleted()
+    {
+        // 检查当前波次是否为最后一波次
+        bool isLastWave = currentWave >= totalWaves;
+        
+        // 检查最后一波是否已经完成（没有正在生成敌人且没有剩余敌人）
+        bool isLastWaveCompleted = !isSpawning && enemiesRemaining <= 0;
+        
+        // 如果是最后一波且已完成，返回true
+        return isLastWave && isLastWaveCompleted;
     }
     
     /// <summary>
@@ -361,7 +410,7 @@ public class WaveManager : Singleton<WaveManager>
     }
     
     /// <summary>
-    /// 获取总波次
+    /// 获取总波次数
     /// </summary>
     public int GetTotalWaves()
     {
@@ -412,9 +461,28 @@ public class WaveManager : Singleton<WaveManager>
             waveCompleteBanner.SetActive(false);
         }
         
+        // 确保GameManager中的波次也被重置
+        if (gameManager != null)
+        {
+            gameManager.SetCurrentWave(currentWave);
+            Debug.Log($"[WaveManager] 已通知GameManager重置波次为: {currentWave}");
+        }
+        else
+        {
+            Debug.LogWarning("[WaveManager] GameManager为空，无法通知重置波次");
+            
+            // 尝试查找GameManager
+            GameManager foundGameManager = GameManager.Instance;
+            if (foundGameManager != null)
+            {
+                foundGameManager.SetCurrentWave(currentWave);
+                Debug.Log($"[WaveManager] 已通知找到的GameManager重置波次为: {currentWave}");
+            }
+        }
+        
         // 开始第一波
         StartCoroutine(StartFirstWaveAfterDelay(2f));
         
-        Debug.Log("[WaveManager] 波次管理器状态已重置");
+        Debug.Log($"[WaveManager] 波次管理器状态已重置，当前波次: {currentWave}/{totalWaves}");
     }
 }

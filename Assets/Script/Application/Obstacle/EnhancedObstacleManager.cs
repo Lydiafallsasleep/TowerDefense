@@ -307,36 +307,15 @@ public class EnhancedObstacleManager : MonoBehaviour
         
         // 检查金币是否足够
         bool hasEnoughGold = false;
-        
-        // 优先使用CoinManager
         if (CoinManager.Instance != null)
         {
             hasEnoughGold = CoinManager.Instance.HasEnoughCoins(clearCost);
             if (!hasEnoughGold)
-        {
+            {
                 Debug.LogWarning($"[EnhancedObstacleManager] 金币不足，需要{clearCost}金币来清除障碍物，当前：{CoinManager.Instance.CurrentCoins}");
-            return false;
-        }
-        
-            // 使用CoinManager扣除金币
+                return false;
+            }
             CoinManager.Instance.TrySpendCoins(clearCost);
-        }
-        // 兼容旧版：使用TowerManager
-        else
-        {
-            TowerManager towerManager = TowerManager.Instance;
-        if (towerManager != null)
-        {
-                if (towerManager.currentGold < clearCost)
-                {
-                    Debug.LogWarning($"[EnhancedObstacleManager] 金币不足，需要{clearCost}金币来清除障碍物，当前：{towerManager.currentGold}");
-                    return false;
-                }
-                
-                // 扣除金币
-            towerManager.currentGold -= clearCost;
-            towerManager.UpdateGoldDisplay();
-        }
         }
         
         // 如果存在障碍物组，清除整个组
@@ -684,7 +663,20 @@ public class EnhancedObstacleManager : MonoBehaviour
     // 判断是否可以在指定位置放置塔
     public bool CanPlaceAtPosition(Vector3Int position)
     {
-        return !IsObstacle(position) || IsClearedObstacle(position);
+        // 检查此位置是否有障碍物
+        bool hasObstacle = IsObstacle(position);
+        
+        // 如果没有障碍物，可以放置塔
+        if (!hasObstacle)
+            return true;
+            
+        // 如果有障碍物，但已经被清除，也可以放置塔
+        if (IsClearedObstacle(position))
+            return true;
+            
+        // 有障碍物且未清除，不能放置塔
+        Debug.Log($"[EnhancedObstacleManager] 位置 {position} 有未清除的障碍物，不能放置塔");
+        return false;
     }
     
     // 创建障碍物组

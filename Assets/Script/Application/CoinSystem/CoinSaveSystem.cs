@@ -3,16 +3,16 @@ using System;
 
 public class CoinSaveSystem : MonoBehaviour
 {
-    [Header("存储设置")]
+    [Header("Storage Settings")]
     [SerializeField] private bool autoSave = true;
-    [SerializeField] private float autoSaveInterval = 60f; // 60秒自动保存一次
+    [SerializeField] private float autoSaveInterval = 60f; // Auto save every 60 seconds
     
     private const string COINS_SAVE_KEY = "player_coins";
     private float timeSinceLastSave;
     
     private void Start()
     {
-        // 加载保存的金币数据
+        // Load saved coin data
         LoadCoins();
     }
     
@@ -30,13 +30,13 @@ public class CoinSaveSystem : MonoBehaviour
         }
     }
     
-    // 在游戏退出时保存
+    // Save on game exit
     private void OnApplicationQuit()
     {
         SaveCoins();
     }
     
-    // 当游戏暂停时保存
+    // Save when game is paused
     private void OnApplicationPause(bool pauseStatus)
     {
         if (pauseStatus)
@@ -45,7 +45,7 @@ public class CoinSaveSystem : MonoBehaviour
         }
     }
     
-    // 保存金币数据
+    // Save coin data
     public void SaveCoins()
     {
         if (CoinManager.Instance == null) return;
@@ -53,10 +53,10 @@ public class CoinSaveSystem : MonoBehaviour
         PlayerPrefs.SetInt(COINS_SAVE_KEY, CoinManager.Instance.CurrentCoins);
         PlayerPrefs.Save();
         
-        Debug.Log($"[CoinSaveSystem] 金币数据已保存: {CoinManager.Instance.CurrentCoins}");
+        Debug.Log($"[CoinSaveSystem] Coin data saved: {CoinManager.Instance.CurrentCoins}");
     }
     
-    // 加载金币数据
+    // Load coin data
     public void LoadCoins()
     {
         if (CoinManager.Instance == null) return;
@@ -65,18 +65,18 @@ public class CoinSaveSystem : MonoBehaviour
         {
             int savedCoins = PlayerPrefs.GetInt(COINS_SAVE_KEY);
             
-            // 找到CoinManager并设置起始金币
+            // Find CoinManager and set starting coins
             CoinManager.Instance.SetStartingCoins(savedCoins);
             
-            Debug.Log($"[CoinSaveSystem] 已加载金币数据: {savedCoins}");
+            Debug.Log($"[CoinSaveSystem] Coin data loaded: {savedCoins}");
         }
         else
         {
-            Debug.Log("[CoinSaveSystem] 未找到保存的金币数据，使用默认值");
+            Debug.Log("[CoinSaveSystem] No saved coin data found, using default value");
         }
     }
     
-    // 清除保存的数据
+    // Clear saved data
     public void ClearSavedData()
     {
         if (PlayerPrefs.HasKey(COINS_SAVE_KEY))
@@ -84,7 +84,7 @@ public class CoinSaveSystem : MonoBehaviour
             PlayerPrefs.DeleteKey(COINS_SAVE_KEY);
             PlayerPrefs.Save();
             
-            Debug.Log("[CoinSaveSystem] 已清除保存的金币数据");
+            Debug.Log("[CoinSaveSystem] Saved coin data cleared");
         }
     }
 }

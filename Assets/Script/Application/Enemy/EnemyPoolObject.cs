@@ -1,8 +1,17 @@
 using UnityEngine;
 
+/// <summary>
+/// 敌人对象池组件
+/// </summary>
 [RequireComponent(typeof(EnemyMovement))]
 public class EnemyPoolObject : ResuableObject
 {
+    [Tooltip("敌人存活时间（秒）")]
+    public float lifeTime = 60f;
+    
+    private float timer = 0f;
+    private bool isActive = false;
+    
     private EnemyMovement movement;
     private Rigidbody2D rb;
     private Animator animator;
@@ -31,6 +40,16 @@ public class EnemyPoolObject : ResuableObject
             rb.gravityScale = 0f;
         }
         
+        // 确保有碰撞体组件
+        CircleCollider2D circleCollider = GetComponent<CircleCollider2D>();
+        if (circleCollider == null)
+        {
+            Debug.LogWarning($"在{gameObject.name}上添加缺失的CircleCollider2D组件");
+            circleCollider = gameObject.AddComponent<CircleCollider2D>();
+            circleCollider.radius = 0.7f;  // 设置适当的碰撞体大小
+            circleCollider.isTrigger = true;  // 设置为触发器，避免物理碰撞
+        }
+        
         // Animator是可选的
         animator = GetComponent<Animator>();
         
@@ -50,6 +69,88 @@ public class EnemyPoolObject : ResuableObject
             Debug.LogWarning($"在{gameObject.name}上添加缺失的EnemyHealth组件");
             health = gameObject.AddComponent<EnemyHealth>();
         }
+    }
+
+    private void OnEnable()
+    {
+        timer = 0f;
+        isActive = true;
+    }
+    
+    private void Update()
+    {
+        if (!isActive)
+            return;
+            
+        timer += Time.deltaTime;
+        
+        if (timer >= lifeTime)
+        {
+            RecycleToPool();
+        }
+    }
+    
+    /// <summary>
+    /// 将敌人回收到对象池
+    /// </summary>
+    public void RecycleToPool()
+    {
+        isActive = false;
+        
+        // 重置敌人状态
+        ResetState();
+        
+        // 回收到对象池
+        if (ObjectPool.Instance != null)
+        {
+            ObjectPool.Instance.OnUnspawn(gameObject);
+        }
+        else
+        {
+            gameObject.SetActive(false);
+        }
+    }
+    
+    /// <summary>
+    /// 重置敌人状态
+    /// </summary>
+    private void ResetState()
+    {
+        // 重置敌人的各种组件状态
+        
+        // 重置生命值
+        EnemyHealth health = GetComponent<EnemyHealth>();
+        if (health != null)
+        {
+            health.ResetHealth();
+        }
+        
+        // 重置移动
+        EnemyMovement movement = GetComponent<EnemyMovement>();
+        if (movement != null)
+        {
+            movement.ResetPath();
+            movement.enabled = true;
+        }
+        
+        // 重置动画
+        Animator animator = GetComponent<Animator>();
+        if (animator != null)
+        {
+            animator.Rebind();
+        }
+        
+        // 重置刚体
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.velocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+            rb.isKinematic = false;
+        }
+        
+        // 重置计时器
+        timer = 0f;
     }
 
     public override void OnSpawn()
@@ -105,7 +206,7 @@ public class EnemyPoolObject : ResuableObject
             {
                 animator.enabled = false;
             }
-
+            
             // 禁用游戏对象
             gameObject.SetActive(false);
             

@@ -147,7 +147,9 @@ public class CollisionDetector : MonoBehaviour
             Gizmos.DrawSphere(lastHitPoint, 0.2f);
             
             // 绘制标签
+#if UNITY_EDITOR
             UnityEditor.Handles.Label(lastHitPoint, $"Hit: {lastHitObjectName}");
+#endif
         }
     }
 } 

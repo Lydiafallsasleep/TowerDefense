@@ -18,10 +18,10 @@ public class SubPool
     {
         this.poolObject = prefab;
         
-        // 安全检查
+        // Safety check
         if (prefab == null)
         {
-            Debug.LogError("警告：SubPool 创建时传入的预制体为null");
+            Debug.LogError("Warning: SubPool created with null prefab");
         }
     }
 
@@ -29,24 +29,24 @@ public class SubPool
     {
         GameObject go = null;
 
-        // 先检查池中是否有可复用的对象
+        // First check if there are reusable objects in the pool
         foreach (GameObject obj in poolList)
         {
             if (obj != null && !obj.activeSelf)
             {
                 go = obj;
-                Debug.Log($"对象池 {Name} 复用了现有实例 {go.name}");
+                Debug.Log($"Object pool {Name} reused existing instance {go.name}");
                 break;
             }
         }
 
-        // 如果没有找到可复用对象，则创建新的
+        // If no reusable object was found, create a new one
         if (go == null)
         {
-            // 确保poolObject不为null
+            // Ensure poolObject is not null
             if (poolObject == null)
             {
-                Debug.LogError("无法创建实例：预制体为null");
+                Debug.LogError("Cannot create instance: prefab is null");
                 return null;
             }
             
@@ -54,47 +54,47 @@ public class SubPool
             {
             go = GameObject.Instantiate(poolObject);
             
-            // 为对象添加唯一标识
+            // Add unique identifier to the object
             int instanceId = go.GetInstanceID();
             go.name = $"{Name}_{poolList.Count}_{instanceId}";
             
             poolList.Add(go);
-            Debug.Log($"对象池 {Name} 创建了新实例 {go.name}，当前池大小：{poolList.Count}");
+            Debug.Log($"Object pool {Name} created new instance {go.name}, current pool size: {poolList.Count}");
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"实例化对象时出错：{e.Message}");
+                Debug.LogError($"Error instantiating object: {e.Message}");
                 return null;
             }
         }
 
         if (go == null)
         {
-            Debug.LogError("无法创建实例或复用现有实例");
+            Debug.LogError("Unable to create instance or reuse existing instance");
             return null;
         }
 
-        // 将对象的实例ID与此池关联
+        // Associate the object's instance ID with this pool
         int id = go.GetInstanceID();
         if (!instanceTracker.ContainsKey(id))
         {
             instanceTracker.Add(id, go);
         }
 
-        // 确保对象处于激活状态
+        // Ensure the object is active
         if (!go.activeSelf)
         {
         go.SetActive(true);
         }
         
-        // 发送OnSpawn消息
+        // Send OnSpawn message
         try
         {
         go.SendMessage("OnSpawn", SendMessageOptions.DontRequireReceiver);
         }
         catch (System.Exception e)
         {
-            Debug.LogError($"调用OnSpawn时出错：{e.Message}");
+            Debug.LogError($"Error calling OnSpawn: {e.Message}");
         }
 
         return go;
@@ -102,21 +102,21 @@ public class SubPool
 
     public void OnDespawn(GameObject go)
     {
-        // 先检查参数是否为null
+        // First check if the parameter is null
         if (go == null)
         {
-            Debug.LogError("尝试回收null对象！");
+            Debug.LogError("Trying to recycle null object!");
             return;
         }
         
-        // 使用实例ID检查对象是否在池中
+        // Use instance ID to check if the object is in the pool
         int instanceId = go.GetInstanceID();
         bool inPool = instanceTracker.ContainsKey(instanceId);
         
-        // 检查对象是否在池中，增加安全检查
+        // Check if the object is in the pool, add additional safety check
         if (inPool || poolList.Contains(go))
         {
-            // 如果对象在列表中但不在字典中，添加到字典
+            // If the object is in the list but not in the dictionary, add it to the dictionary
             if (!inPool && poolList.Contains(go))
             {
                 instanceTracker.Add(instanceId, go);
@@ -124,42 +124,42 @@ public class SubPool
             
             try
             {
-                // 发送OnDespawn消息
+                // Send OnDespawn message
                 go.SendMessage("OnDespawn", SendMessageOptions.DontRequireReceiver);
-                // 禁用对象而不是销毁它
+                // Disable the object instead of destroying it
                 go.SetActive(false);
-                Debug.Log($"成功回收对象 {go.name} 到对象池 {Name}");
+                Debug.Log($"Successfully recycled object {go.name} to object pool {Name}");
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"回收对象{go.name}时出现异常: {e.Message}");
-                // 即使出错也尝试禁用对象
+                Debug.LogError($"Exception occurred while recycling object {go.name}: {e.Message}");
+                // Try to disable the object even if an error occurs
                 try { go.SetActive(false); } catch {}
             }
         }
         else
         {
-            // 对象不在此池中，但我们仍然尝试禁用它
-            Debug.LogWarning($"对象 {go.name} 不在对象池 {Name} 中，但仍尝试禁用");
+            // Object is not in this pool, but we still try to disable it
+            Debug.LogWarning($"Object {go.name} is not in object pool {Name}, but still attempting to disable");
             try
             {
                 go.SetActive(false);
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"禁用对象时出错：{e.Message}");
+                Debug.LogError($"Error disabling object: {e.Message}");
             }
             
-            // 添加到池中，以便将来可能的重用
+            // Add to the pool for possible future reuse
             try
             {
                 poolList.Add(go);
                 instanceTracker.Add(instanceId, go);
-                Debug.Log($"将外部对象 {go.name} 添加到池 {Name} 中");
+                Debug.Log($"Added external object {go.name} to pool {Name}");
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"添加对象到池中时出错：{e.Message}");
+                Debug.LogError($"Error adding object to pool: {e.Message}");
             }
         }
     }
@@ -177,7 +177,7 @@ public class SubPool
                 }
                 catch (System.Exception e)
                 {
-                    Debug.LogError($"回收对象{go.name}时出现异常: {e.Message}");
+                    Debug.LogError($"Exception occurred while recycling object {go.name}: {e.Message}");
                 }
             }
     }
@@ -185,18 +185,18 @@ public class SubPool
 
     public bool isContains(GameObject go)
     {
-        // 先检查参数是否为null
+        // First check if the parameter is null
         if (go == null)
         {
-            Debug.LogError("尝试检查null对象是否在池中！");
+            Debug.LogError("Trying to check if null object is in the pool!");
             return false;
         }
         
-        // 优先使用实例ID查找，这样更快更可靠
+        // First use instance ID lookup, which is faster and more reliable
         int instanceId = go.GetInstanceID();
         bool instanceTracked = instanceTracker.ContainsKey(instanceId);
         
-        // 如果实例ID没找到，再尝试列表查找
+        // If instance ID not found, try list lookup
         bool listContains = false;
         if (!instanceTracked)
         {
@@ -204,16 +204,16 @@ public class SubPool
             {
                 listContains = poolList.Contains(go);
                 
-                // 如果在列表中但不在字典中，添加到字典
+                // If in the list but not in the dictionary, add to the dictionary
                 if (listContains)
                 {
                     instanceTracker.Add(instanceId, go);
-                    Debug.Log($"对象 {go.name} 在池列表中找到，但不在实例跟踪器中，已添加");
+                    Debug.Log($"Object {go.name} found in pool list but not in instance tracker, added");
                 }
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"检查对象是否在池中时出现异常: {e.Message}");
+                Debug.LogError($"Exception occurred while checking if object is in pool: {e.Message}");
                 return false;
             }
         }
@@ -222,7 +222,7 @@ public class SubPool
         
         if (!contains)
         {
-            Debug.LogWarning($"对象 {go.name} 不在对象池 {Name} 中！");
+            Debug.LogWarning($"Object {go.name} is not in object pool {Name}!");
             LogPoolStatus();
         }
         
@@ -231,9 +231,9 @@ public class SubPool
 
     private void LogPoolStatus()
     {
-        Debug.Log($"对象池 {Name} 当前状态：");
-        Debug.Log($"- 池中对象总数：{poolList.Count}");
-        Debug.Log($"- 实例追踪器中的对象数：{instanceTracker.Count}");
+        Debug.Log($"Object pool {Name} current status:");
+        Debug.Log($"- Total objects in pool: {poolList.Count}");
+        Debug.Log($"- Objects in instance tracker: {instanceTracker.Count}");
         int activeCount = 0;
         
         for (int i = 0; i < poolList.Count; i++)
@@ -241,9 +241,9 @@ public class SubPool
             GameObject obj = poolList[i];
             bool isActive = obj != null && obj.activeSelf;
             if (isActive) activeCount++;
-            Debug.Log($"- 对象[{i}]: {(obj != null ? obj.name : "null")}, 激活状态: {isActive}");
+            Debug.Log($"- Object[{i}]: {(obj != null ? obj.name : "null")}, Active: {isActive}");
         }
         
-        Debug.Log($"- 激活对象数: {activeCount}, 非激活对象数: {poolList.Count - activeCount}");
+        Debug.Log($"- Active objects: {activeCount}, Inactive objects: {poolList.Count - activeCount}");
     }
 }

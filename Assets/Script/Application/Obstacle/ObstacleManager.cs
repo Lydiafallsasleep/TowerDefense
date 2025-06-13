@@ -266,13 +266,29 @@ public class ObstacleManager : Singleton<ObstacleManager>
         {
             CoinManager.Instance.TrySpendCoins(clearCost);
         }
-        else if (TowerManager.Instance != null)
+        
+        // 6. 查找与障碍物位置匹配的ObstaclePlacementPoint
+        ObstaclePlacementPoint[] placementPoints = FindObjectsOfType<ObstaclePlacementPoint>();
+        foreach (var point in placementPoints)
         {
-            TowerManager.Instance.currentGold -= clearCost;
-            TowerManager.Instance.UpdateGoldDisplay();
+            if (point.obstaclePosition == position)
+            {
+                // 启用该放置点
+                point.EnablePoint();
+                
+                // 将放置点添加到TowerPlacementManager
+                TowerPlacementManager placementManager = TowerPlacementManager.Instance;
+                if (placementManager != null && !placementManager.placementPoints.Contains(point))
+                {
+                    placementManager.placementPoints.Add(point);
+                    // 重新初始化放置点系统
+                    placementManager.ReinitializePlacementPoints();
+                }
+                break;
+            }
         }
         
-        // 6. 可选：播放清除特效
+        // 7. 可选：播放清除特效
         if (clearEffect != null)
         {
             // 使用第一个图层的位置来生成特效

@@ -1,21 +1,21 @@
 using UnityEngine;
 
 /// <summary>
-/// 障碍物基类，所有障碍物都应该继承此类
+/// Base class for obstacles, all obstacles should inherit from this class
 /// </summary>
 public class Obstacle : MonoBehaviour
 {
-    [Header("基本属性")]
+    [Header("Basic Properties")]
     public string obstacleName;
     public int buildCost = 50;
     public int health = 100;
     public int maxHealth = 100;
     
-    [Header("状态")]
+    [Header("Status")]
     protected bool isActive = true;
     protected bool isDestroyed = false;
     
-    [Header("组件引用")]
+    [Header("Component References")]
     protected SpriteRenderer spriteRenderer;
     
     protected virtual void Awake()
@@ -25,11 +25,11 @@ public class Obstacle : MonoBehaviour
     
     protected virtual void Start()
     {
-        // 初始化
+        // Initialization
     }
     
     /// <summary>
-    /// 障碍物受到伤害
+    /// Obstacle takes damage
     /// </summary>
     public virtual void TakeDamage(int damage)
     {
@@ -38,7 +38,7 @@ public class Obstacle : MonoBehaviour
             
         health -= damage;
         
-        // 检查是否被摧毁
+        // Check if destroyed
         if (health <= 0)
         {
             health = 0;
@@ -47,23 +47,23 @@ public class Obstacle : MonoBehaviour
     }
     
     /// <summary>
-    /// 障碍物被摧毁时调用
+    /// Called when obstacle is destroyed
     /// </summary>
     protected virtual void OnDestroyed()
     {
         isDestroyed = true;
         isActive = false;
         
-        // 可以添加摧毁效果，如粒子效果
+        // Can add destruction effects, like particle effects
         
-        // 禁用碰撞器
+        // Disable collider
         Collider2D collider = GetComponent<Collider2D>();
         if (collider != null)
         {
             collider.enabled = false;
         }
         
-        // 更改外观
+        // Change appearance
         if (spriteRenderer != null)
         {
             Color color = spriteRenderer.color;
@@ -73,7 +73,7 @@ public class Obstacle : MonoBehaviour
     }
     
     /// <summary>
-    /// 修复障碍物
+    /// Repair obstacle
     /// </summary>
     public virtual void Repair(int amount)
     {
@@ -86,14 +86,14 @@ public class Obstacle : MonoBehaviour
         {
             isActive = true;
             
-            // 启用碰撞器
+            // Enable collider
             Collider2D collider = GetComponent<Collider2D>();
             if (collider != null)
             {
                 collider.enabled = true;
             }
             
-            // 恢复外观
+            // Restore appearance
             if (spriteRenderer != null)
             {
                 Color color = spriteRenderer.color;
@@ -104,7 +104,7 @@ public class Obstacle : MonoBehaviour
     }
     
     /// <summary>
-    /// 获取当前生命值
+    /// Get current health
     /// </summary>
     public int GetHealth()
     {
@@ -112,7 +112,7 @@ public class Obstacle : MonoBehaviour
     }
     
     /// <summary>
-    /// 获取最大生命值
+    /// Get maximum health
     /// </summary>
     public int GetMaxHealth()
     {
@@ -120,7 +120,7 @@ public class Obstacle : MonoBehaviour
     }
     
     /// <summary>
-    /// 获取生命值百分比
+    /// Get health percentage
     /// </summary>
     public float GetHealthPercentage()
     {
@@ -128,27 +128,27 @@ public class Obstacle : MonoBehaviour
     }
     
     /// <summary>
-    /// 重置障碍物状态
+    /// Reset obstacle state
     /// </summary>
     public virtual void ResetState()
     {
-        Debug.Log($"[{obstacleName}] 重置障碍物状态");
+        Debug.Log($"[{obstacleName}] Resetting obstacle state");
         
-        // 重置生命值
+        // Reset health
         health = maxHealth;
         
-        // 重置状态
+        // Reset status
         isActive = true;
         isDestroyed = false;
         
-        // 启用碰撞器
+        // Enable collider
         Collider2D collider = GetComponent<Collider2D>();
         if (collider != null)
         {
             collider.enabled = true;
         }
         
-        // 恢复外观
+        // Restore appearance
         if (spriteRenderer != null)
         {
             Color color = spriteRenderer.color;

@@ -17,7 +17,7 @@ public class MissingScriptFinder : MonoBehaviour
             missingCount += FindMissingScriptsInGameObject(go);
         }
         
-        Debug.Log($"发现 {missingCount} 个缺失的脚本引用");
+        Debug.Log($"Found {missingCount} missing script references");
     }
     
     [MenuItem("Tools/Find Missing Scripts in Selected Objects")]
@@ -31,7 +31,7 @@ public class MissingScriptFinder : MonoBehaviour
             missingCount += FindMissingScriptsInGameObject(go);
         }
         
-        Debug.Log($"在选定对象中发现 {missingCount} 个缺失的脚本引用");
+        Debug.Log($"Found {missingCount} missing script references in selected objects");
     }
     
     [MenuItem("Tools/Find Missing Scripts in Prefabs")]
@@ -52,12 +52,12 @@ public class MissingScriptFinder : MonoBehaviour
             int prefabMissingCount = FindMissingScriptsInGameObject(prefab);
             if (prefabMissingCount > 0)
             {
-                Debug.Log($"预制体 '{path}' 有 {prefabMissingCount} 个缺失脚本", prefab);
+                Debug.Log($"Prefab '{path}' has {prefabMissingCount} missing scripts", prefab);
             }
             missingCount += prefabMissingCount;
         }
         
-        Debug.Log($"检查了 {checkedCount} 个预制体，发现 {missingCount} 个缺失的脚本引用");
+        Debug.Log($"Checked {checkedCount} prefabs, found {missingCount} missing script references");
     }
     
     static int FindMissingScriptsInGameObject(GameObject go)
@@ -69,7 +69,7 @@ public class MissingScriptFinder : MonoBehaviour
         {
             if (components[i] == null)
             {
-                Debug.LogWarning($"游戏对象 '{go.name}' 有缺失的脚本引用", go);
+                Debug.LogWarning($"GameObject '{go.name}' has missing script references", go);
                 missingCount++;
             }
         }
@@ -85,9 +85,9 @@ public class MissingScriptFinder : MonoBehaviour
     [MenuItem("Tools/Remove Missing Scripts in Scene")]
     static void RemoveMissingScriptsInScene()
     {
-        if (!EditorUtility.DisplayDialog("危险操作", 
-            "此操作将移除场景中所有对象上的缺失脚本引用。这个操作不可撤销。是否继续？", 
-            "确认", "取消"))
+        if (!EditorUtility.DisplayDialog("Dangerous Operation",
+            "This operation will remove all missing script references from objects in the scene. This action cannot be undone. Do you want to continue?",
+            "Confirm", "Cancel"))
         {
             return;
         }
@@ -100,7 +100,7 @@ public class MissingScriptFinder : MonoBehaviour
             removedCount += RemoveMissingScriptsInGameObject(go);
         }
         
-        Debug.Log($"移除了 {removedCount} 个缺失的脚本引用");
+        Debug.Log($"Removed {removedCount} missing script references");
     }
     
     static int RemoveMissingScriptsInGameObject(GameObject go)

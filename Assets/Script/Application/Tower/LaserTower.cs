@@ -2,382 +2,336 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
+/// <summary>
+/// Laser Tower class: Continuous attack, low damage, with slowing effect
+/// </summary>
 public class LaserTower : BaseTower
 {
-    [Header("激光塔特有属性")]
-    public LineRenderer laserLineRenderer;
+    [Header("Laser Tower Special Settings")]
+    public LineRenderer laserBeam;
     public Transform firePoint;
-    public AudioClip laserSound;
-    public float damageRate = 0.1f; // 每秒对敌人造成伤害的频率
+    public float baseAttackSpeed = 1.0f;  // Base attack speed (damage instances per second)
+    public float baseDamage = 5f;         // Base damage (per second)
+    public float baseRange = 6.5f;        // Increased base attack range
     
-    [Header("激光效果")]
-    public bool hasSlowEffect = false;  // 减速效果
-    public float slowFactor = 0.5f;     // 减速幅度，0.5表示速度减半
-    public float beamWidth = 0.1f;      // 激光宽度
-    public Color beamColor = Color.red; // 激光颜色
-    public bool hasPenetration = false; // 是否可以穿透多个敌人
-    public int maxTargets = 1;          // 最大目标数量
+    [Header("Slow Effect")]
+    public float slowFactor = 0.5f;       // Slow factor (percentage of movement speed)
+    public float slowDuration = 1.0f;     // Slow duration
+    public Color laserColor = Color.cyan; // Laser color
+    
+    [Header("Visual Effects")]
+    public GameObject impactEffect;
+    public float laserWidth = 0.1f;
+    public AudioClip laserSound;
     
     private AudioSource audioSource;
-    private float damageTimer;
-    private List<Transform> currentTargets = new List<Transform>();
-    private List<EnemyMovement> slowedEnemies = new List<EnemyMovement>();
+    private bool isLaserActive = false;
+    private GameObject currentImpactEffect;
     
     protected override void Awake()
     {
         base.Awake();
-        audioSource = GetComponent<AudioSource>();
         
-        // 如果没有LineRenderer，创建一个
-        if (laserLineRenderer == null)
+        // Initialize laser tower properties
+        towerName = "Laser Tower";
+        cost = 150;
+        sellValue = 105;
+        upgradePrice = 200;
+        
+        // Set laser tower-specific position offset
+        positionOffset = new Vector3(0, 0.5f, -0.2f); // Medium height, slightly back
+        
+        // Initialize audio source
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
         {
-            laserLineRenderer = gameObject.AddComponent<LineRenderer>();
-            laserLineRenderer.startWidth = beamWidth;
-            laserLineRenderer.endWidth = beamWidth;
-            laserLineRenderer.positionCount = 2;
-            laserLineRenderer.useWorldSpace = true;
-            
-            // 使用Unity默认的Material
-            laserLineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-            laserLineRenderer.startColor = beamColor;
-            laserLineRenderer.endColor = beamColor;
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.loop = true;
+            audioSource.volume = 0.5f;
         }
         
-        // 默认禁用激光
-        laserLineRenderer.enabled = false;
+        // Initialize laser renderer
+        if (laserBeam == null)
+        {
+            laserBeam = GetComponentInChildren<LineRenderer>();
+            if (laserBeam == null)
+            {
+                GameObject laserObj = new GameObject("LaserBeam");
+                laserObj.transform.SetParent(transform);
+                laserObj.transform.localPosition = Vector3.zero;
+                laserBeam = laserObj.AddComponent<LineRenderer>();
+            }
+        }
+        
+        // Configure laser renderer
+        laserBeam.startWidth = laserWidth;
+        laserBeam.endWidth = laserWidth * 0.8f;
+        laserBeam.material = new Material(Shader.Find("Sprites/Default"));
+        laserBeam.startColor = laserColor;
+        laserBeam.endColor = new Color(laserColor.r, laserColor.g, laserColor.b, 0.5f);
+        laserBeam.positionCount = 2;
+        laserBeam.enabled = false;
+        
+        // Set attack system properties
+        if (attackSystem != null)
+        {
+            attackSystem.towerType = TowerAttackSystem.TowerType.Laser;
+            attackSystem.attackDamage = baseDamage;
+            attackSystem.attackSpeed = baseAttackSpeed;
+            attackSystem.attackRange = baseRange;
+            attackSystem.laserBeam = laserBeam;
+            attackSystem.slowFactor = slowFactor;
+            attackSystem.slowDuration = slowDuration;
+        }
     }
     
     protected override void Start()
     {
-        towerName = "激光塔";
+        // Laser tower has low damage but continuous attack and slowing
+        damage = 5f;
+        fireRate = 0f; // Laser tower uses continuous damage, not fireRate
+        range = 1500f;
         
-        // 激光塔具有持续伤害，每秒伤害较低但稳定
-        damage = 5f; // 每次伤害
-        fireRate = 0f; // 激光塔不使用普通的攻击频率
-        range = 6f;
-        
-        // 调整升级特性
-        damageIncreasePerLevel = 3f;  
-        rangeIncreasePerLevel = 0.7f;
-        
-        buildCost = 175;
-        upgradeCost = 125;
+        // Adjust upgrade characteristics
+        damageIncreasePerLevel = 3f;
+        rangeIncreasePerLevel = 0.4f;
+        fireRateIncreasePerLevel = 0f; // Not using fireRate
         
         base.Start();
-        
-        // 如果没有设置发射点，使用自身位置
-        if (firePoint == null)
-        {
-            firePoint = transform;
-        }
-    }
-    
-    protected override void UpdateTarget()
-    {
-        // 获取所有带有"Enemy"标签的游戏对象
-        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-        
-        if (enemies.Length == 0)
-        {
-            currentTargets.Clear();
-            target = null;
-            return;
-        }
-        
-        currentTargets.Clear();
-        
-        // 排序敌人数组，找到优先级最高的敌人
-        SortEnemiesByPriority(ref enemies);
-        
-        // 获取穿透效果允许的目标数量
-        int targetsToFind = hasPenetration ? maxTargets : 1;
-        
-        // 找到范围内的敌人，最多找到允许的目标数量
-        foreach (GameObject enemy in enemies)
-        {
-            if (!enemy.activeSelf || currentTargets.Count >= targetsToFind)
-                continue;
-                
-            float distanceToEnemy = Vector3.Distance(transform.position, enemy.transform.position);
-            
-            // 如果敌人在范围内，添加到目标列表
-            if (distanceToEnemy <= range)
-            {
-                currentTargets.Add(enemy.transform);
-            }
-        }
-        
-        // 如果有目标，将第一个目标设为主目标
-        if (currentTargets.Count > 0)
-        {
-            target = currentTargets[0];
-        }
-        else
-        {
-            target = null;
-        }
-    }
-    
-    // 对敌人排序，根据当前的目标优先级
-    private void SortEnemiesByPriority(ref GameObject[] enemies)
-    {
-        // 使用LINQ或其他方法排序敌人数组
-        System.Array.Sort(enemies, (a, b) => {
-            if (a == null || b == null) return 0;
-            
-            float valueA = EvaluateTargetPriority(a);
-            float valueB = EvaluateTargetPriority(b);
-            
-            return -valueA.CompareTo(valueB); // 降序排序，高优先级在前
-        });
-    }
-    
-    // 根据目标优先级评估敌人值
-    private float EvaluateTargetPriority(GameObject enemy)
-    {
-        float value = 0;
-        float distanceToEnemy = Vector3.Distance(transform.position, enemy.transform.position);
-        
-        // 如果超出范围，返回最低优先级
-        if (distanceToEnemy > range)
-            return float.MinValue;
-            
-        EnemyMovement movement = enemy.GetComponent<EnemyMovement>();
-        EnemyHealth health = enemy.GetComponent<EnemyHealth>();
-        
-        switch (targetPriority)
-        {
-            case TargetPriority.First:
-                if (movement != null) value = movement.GetPathProgress();
-                break;
-            case TargetPriority.Last:
-                if (movement != null) value = -movement.GetPathProgress();
-                break;
-            case TargetPriority.Strongest:
-                if (health != null) value = health.GetCurrentHealth();
-                break;
-            case TargetPriority.Weakest:
-                if (health != null) value = -health.GetCurrentHealth();
-                break;
-            case TargetPriority.Closest:
-                value = -distanceToEnemy;
-                break;
-            case TargetPriority.Furthest:
-                value = distanceToEnemy;
-                break;
-        }
-        
-        return value;
     }
     
     protected override void Update()
     {
-        // 重写Update方法，不使用基类的攻击冷却逻辑
+        // Laser tower has its own update logic, doesn't use base Update
         if (!isActive)
             return;
             
-        // 更新目标
-        UpdateTarget();
+        UpdateTarget(); // Update target
         
-        // 处理激光效果
+        // If has target, activate laser
         if (target != null)
         {
-            // 瞄准目标
-            AimAt(target);
+            if (!isLaserActive)
+            {
+                ActivateLaser();
+            }
             
-            // 激活激光
-            laserLineRenderer.enabled = true;
-            
-            // 更新激光位置
+            // Update laser position
             UpdateLaser();
             
-            // 播放激光声音
-            if (audioSource != null && laserSound != null && !audioSource.isPlaying)
+            // Apply continuous damage
+            ApplyDamage();
+        }
+        else if (isLaserActive)
+        {
+            DeactivateLaser();
+        }
+    }
+    
+    // Override PerformAttack method instead of Attack
+    protected override void PerformAttack()
+    {
+        // Laser tower handles attack logic in Update, no additional implementation needed here
+    }
+    
+    private void ActivateLaser()
+    {
+        isLaserActive = true;
+        laserBeam.enabled = true;
+        
+        // Play laser sound
+        if (audioSource != null && laserSound != null)
             {
                 audioSource.clip = laserSound;
                 audioSource.Play();
             }
             
-            // 处理伤害计时器
-            damageTimer += Time.deltaTime;
-            if (damageTimer >= damageRate)
-            {
-                damageTimer = 0f;
-                ApplyDamage();
-            }
-        }
-        else
+        // Create laser impact effect
+        if (impactEffect != null && target != null)
         {
-            // 没有目标，停止激光
-            laserLineRenderer.enabled = false;
-            
-            // 停止声音
-            if (audioSource != null && audioSource.isPlaying)
-            {
-                audioSource.Stop();
-            }
-            
-            // 清除所有减速效果
-            RemoveAllSlowEffects();
+            currentImpactEffect = Instantiate(impactEffect, target.position, Quaternion.identity);
+            currentImpactEffect.transform.parent = target;
         }
     }
     
-    // 更新激光位置
     private void UpdateLaser()
     {
-        if (firePoint != null && laserLineRenderer != null)
-        {
-            laserLineRenderer.SetPosition(0, firePoint.position);
+        if (!isLaserActive || target == null)
+            return;
             
-            // 如果有多个目标且启用了穿透，绘制多段激光
-            if (hasPenetration && currentTargets.Count > 1)
-            {
-                // 计算激光起点和终点
-                Vector3 lastPoint = firePoint.position;
-                
-                // 调整LineRenderer的点数
-                laserLineRenderer.positionCount = currentTargets.Count + 1;
-                
-                // 设置起点
-                laserLineRenderer.SetPosition(0, lastPoint);
-                
-                // 设置每个目标点
-                for (int i = 0; i < currentTargets.Count; i++)
-                {
-                    if (currentTargets[i] != null)
-                    {
-                        laserLineRenderer.SetPosition(i + 1, currentTargets[i].position);
-                    }
-                }
-            }
-            else if (target != null)
-            {
-                // 单目标模式
-                laserLineRenderer.positionCount = 2;
-                laserLineRenderer.SetPosition(1, target.position);
-            }
+        // Update laser start and end points
+        Vector3 startPosition = transform.position;
+        Vector3 endPosition = target.position;
+        
+        laserBeam.SetPosition(0, startPosition);
+        laserBeam.SetPosition(1, endPosition);
+        
+        // Update impact effect position
+        if (currentImpactEffect != null)
+        {
+            currentImpactEffect.transform.position = endPosition;
         }
     }
     
-    // 对目标造成伤害
+    private void DeactivateLaser()
+    {
+        isLaserActive = false;
+        laserBeam.enabled = false;
+        
+        // Stop laser sound
+        if (audioSource != null)
+        {
+            audioSource.Stop();
+        }
+        
+        // Destroy impact effect
+        if (currentImpactEffect != null)
+        {
+            Destroy(currentImpactEffect);
+            currentImpactEffect = null;
+        }
+    }
+    
     private void ApplyDamage()
     {
-        foreach (Transform enemyTransform in currentTargets)
-        {
-            if (enemyTransform == null)
-                continue;
-                
-            EnemyHealth health = enemyTransform.GetComponent<EnemyHealth>();
-            if (health != null)
-            {
-                health.TakeDamage(damage);
-            }
+        if (!isLaserActive || target == null)
+            return;
             
-            // 应用减速效果
-            if (hasSlowEffect)
+        // Get target's health component
+        GameObject targetObj = target.gameObject;
+        EnemyHealth enemyHealth = targetObj.GetComponent<EnemyHealth>();
+        
+        if (enemyHealth != null)
+        {
+            // Apply damage per frame, scaled by time
+            enemyHealth.TakeDamage(damage * Time.deltaTime);
+            
+            // Apply slow effect
+            EnemyMovement movement = targetObj.GetComponent<EnemyMovement>();
+            if (movement != null)
             {
-                EnemyMovement movement = enemyTransform.GetComponent<EnemyMovement>();
-                if (movement != null && !slowedEnemies.Contains(movement))
+                movement.ApplySlow(slowFactor, slowDuration);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Special handling during upgrade
+    /// </summary>
+    public override bool Upgrade()
+    {
+        bool upgraded = base.Upgrade();
+        
+        if (upgraded)
+        {
+            // Special handling for laser tower upgrade
+            UpdateVisuals();
+            
+            // Laser tower gets additional 5% slow effect and duration per level
+            if (attackSystem != null)
+            {
+                slowFactor *= 0.95f; // Reduce to 95% (stronger slow)
+                slowDuration *= 1.05f; // Increase duration by 5%
+                
+                attackSystem.slowFactor = slowFactor;
+                attackSystem.slowDuration = slowDuration;
+                
+                // Increase laser width
+                if (laserBeam != null)
                 {
-                    ApplySlowEffect(movement);
+                    laserBeam.startWidth *= 1.1f;
+                    laserBeam.endWidth *= 1.1f;
                 }
             }
         }
+        
+        return upgraded;
     }
     
-    // 应用减速效果
-    private void ApplySlowEffect(EnemyMovement enemy)
+    /// <summary>
+    /// Update laser tower visuals
+    /// </summary>
+    protected override void UpdateVisuals()
     {
-        if (enemy == null || slowedEnemies.Contains(enemy))
-            return;
-            
-        // 保存原始速度
-        enemy.originalMoveSpeed = enemy.moveSpeed;
+        // First call base class UpdateVisuals method
+        base.UpdateVisuals();
         
-        // 减速
-        enemy.moveSpeed *= slowFactor;
-        
-        // 添加到减速列表
-        slowedEnemies.Add(enemy);
-    }
-    
-    // 移除减速效果
-    private void RemoveSlowEffect(EnemyMovement enemy)
-    {
-        if (enemy == null)
-            return;
-            
-        // 恢复速度（如果敌人还活着）
-        if (enemy.gameObject.activeSelf)
+        // Update laser tower appearance based on level
+        SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null && levelSprites != null && level <= levelSprites.Length)
         {
-            enemy.moveSpeed = enemy.originalMoveSpeed;
+            spriteRenderer.sprite = levelSprites[level - 1];
         }
         
-        // 从减速列表中移除
-        slowedEnemies.Remove(enemy);
-    }
-    
-    // 移除所有减速效果
-    private void RemoveAllSlowEffects()
-    {
-        foreach (EnemyMovement enemy in slowedEnemies)
+        // Update laser color based on level
+        if (laserBeam != null)
         {
-            if (enemy != null && enemy.gameObject.activeSelf)
+            Color newColor;
+            switch (level)
             {
-                enemy.moveSpeed = enemy.originalMoveSpeed;
+                case 2:
+                    newColor = new Color(0.5f, 1f, 1f); // Light blue
+                    break;
+                case 3:
+                    newColor = new Color(0f, 1f, 1f);   // Cyan
+                    break;
+                default:
+                    newColor = laserColor;
+                    break;
             }
+            
+            laserBeam.startColor = newColor;
+            laserBeam.endColor = new Color(newColor.r, newColor.g, newColor.b, 0.5f);
         }
         
-        slowedEnemies.Clear();
-    }
-    
-    // 塔被销毁时的清理
-    protected void OnDestroy()
-    {
-        RemoveAllSlowEffects();
-    }
-    
-    // 激光塔特有的瞄准方法
-    private void AimAt(Transform target)
-    {
-        if (target != null && firePoint != null)
+        // Add upgrade effect if available
+        GameObject upgradeEffect = Resources.Load<GameObject>("Effects/UpgradeEffect");
+        if (upgradeEffect != null)
         {
-            Vector3 dir = target.position - firePoint.position;
-            float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-            firePoint.rotation = Quaternion.Euler(0f, 0f, angle);
+            Instantiate(upgradeEffect, transform.position, Quaternion.identity);
         }
     }
     
-    protected override void Attack()
+    protected override void OnDestroy()
     {
-        // 激光塔不使用常规Attack方法，而是在Update中处理持续伤害
+        // Ensure cleanup of all effects
+        DeactivateLaser();
     }
     
-    public override bool Upgrade()
+    /// <summary>
+    /// Reset laser tower state
+    /// </summary>
+    public override void ResetState()
     {
-        if (!base.Upgrade())
-            return false;
+        base.ResetState();
         
-        // 一级：获得减速效果
-        if (level == 2)
+        // Reset to level 1 state
+        level = 1;
+        canUpgrade = true;
+        
+        // Reset attack system properties
+        if (attackSystem != null)
         {
-            hasSlowEffect = true;
+            attackSystem.attackDamage = baseDamage;
+            attackSystem.attackSpeed = baseAttackSpeed;
+            attackSystem.attackRange = baseRange;
+            attackSystem.slowFactor = slowFactor;
+            attackSystem.slowDuration = slowDuration;
         }
         
-        // 二级：获得穿透效果
-        else if (level == 3)
+        // Reset laser properties
+        if (laserBeam != null)
         {
-            slowFactor = 0.3f;  // 更强减速
-            hasPenetration = true;  // 获得穿透效果
-            maxTargets = 3;  // 最多穿透3个敌人
-            beamWidth = 0.15f;  // 增加激光宽度
-            laserLineRenderer.startWidth = beamWidth;
-            laserLineRenderer.endWidth = beamWidth;
-            beamColor = Color.cyan;  // 更改激光颜色
-            laserLineRenderer.startColor = beamColor;
-            laserLineRenderer.endColor = beamColor;
+            laserBeam.startWidth = 0.1f;
+            laserBeam.endWidth = 0.05f;
+            laserBeam.startColor = laserColor;
+            laserBeam.endColor = new Color(laserColor.r, laserColor.g, laserColor.b, 0.5f);
+            laserBeam.enabled = false;
         }
         
-        return true;
+        // Update visuals
+        UpdateVisuals();
+        
+        Debug.Log($"[{towerName}] State reset");
     }
-} 
+}

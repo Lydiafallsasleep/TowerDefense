@@ -1,313 +1,261 @@
 using UnityEngine;
 using System.Collections.Generic;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 /// <summary>
-/// 管理所有塔的放置点
+/// 管理塔防放置点，提供访问和管理所有放置点的功能
 /// </summary>
-public class TowerPlacementManager : Singleton<TowerPlacementManager>
+public class TowerPlacementManager : MonoBehaviour
 {
-    [Header("放置点设置")]
+    // 单例实例
+    public static TowerPlacementManager Instance { get; private set; }
+    
+    // 所有放置点的列表
     public List<TowerPlacementPoint> placementPoints = new List<TowerPlacementPoint>();
     
-    [Header("放置设置")]
-    public bool usePresetPositionsOnly = true;  // 是否只使用预设位置
-    public bool highlightAvailablePoints = true;  // 是否高亮可用的放置点
-    public GameObject highligherPrefab;  // 高亮效果预制体
+    // 记录放置点的字典，便于快速查找
+    private Dictionary<string, TowerPlacementPoint> pointsById = new Dictionary<string, TowerPlacementPoint>();
+    private Dictionary<Vector3Int, TowerPlacementPoint> pointsByGrid = new Dictionary<Vector3Int, TowerPlacementPoint>();
     
-    // 当前选中的放置点
-    private TowerPlacementPoint selectedPoint;
+    [Header("高亮显示设置")]
+    public Color availableColor = Color.green;  // 可用放置点颜色
+    public Color unavailableColor = Color.red;  // 不可用放置点颜色
+    public float highlightIntensity = 1.5f;     // 高亮强度
+    public bool highlightAvailablePoints = false; // 是否自动高亮显示可用放置点
+    private bool isHighlighting = false;        // 是否正在高亮显示
     
-    // 放置点的字典，用于快速查找
-    private Dictionary<string, TowerPlacementPoint> pointsDict = new Dictionary<string, TowerPlacementPoint>();
-    private Dictionary<Vector3Int, TowerPlacementPoint> gridPointsDict = new Dictionary<Vector3Int, TowerPlacementPoint>();
-    
-    // 放置点分组
-    private Dictionary<string, List<TowerPlacementPoint>> groupsDict = new Dictionary<string, List<TowerPlacementPoint>>();
-    
-    void Start()
+    private void Awake()
     {
-        // 初始化放置点
-        InitializePlacementPoints();
-    }
-    
-    /// <summary>
-    /// 初始化放置点
-    /// </summary>
-    private void InitializePlacementPoints()
-    {
-        // 清空字典
-        pointsDict.Clear();
-        gridPointsDict.Clear();
-        groupsDict.Clear();
-        
-        // 自动查找场景中的所有放置点
-        if (placementPoints.Count == 0)
+        // 单例模式实现
+        if (Instance == null)
         {
-            TowerPlacementPoint[] points = FindObjectsOfType<TowerPlacementPoint>();
-            placementPoints = new List<TowerPlacementPoint>(points);
-        }
-        
-        // 添加到字典
-        foreach (TowerPlacementPoint point in placementPoints)
-        {
-            if (!string.IsNullOrEmpty(point.pointID))
-            {
-                pointsDict[point.pointID] = point;
-            }
-            
-            // 添加到网格字典
-            gridPointsDict[point.gridPosition] = point;
-            
-            // 添加到分组字典
-            if (!string.IsNullOrEmpty(point.placementGroupID))
-            {
-                if (!groupsDict.ContainsKey(point.placementGroupID))
-                {
-                    groupsDict[point.placementGroupID] = new List<TowerPlacementPoint>();
-                }
-                
-                groupsDict[point.placementGroupID].Add(point);
-            }
-        }
-        
-        Debug.Log($"已初始化 {placementPoints.Count} 个塔放置点");
-    }
-    
-    /// <summary>
-    /// 获取指定位置的放置点
-    /// </summary>
-    public TowerPlacementPoint GetPlacementPoint(Vector3Int gridPosition)
-    {
-        if (gridPointsDict.TryGetValue(gridPosition, out TowerPlacementPoint point))
-        {
-            return point;
-        }
-        
-        return null;
-    }
-    
-    /// <summary>
-    /// 获取指定ID的放置点
-    /// </summary>
-    public TowerPlacementPoint GetPlacementPoint(string pointID)
-    {
-        if (pointsDict.TryGetValue(pointID, out TowerPlacementPoint point))
-        {
-            return point;
-        }
-        
-        return null;
-    }
-    
-    /// <summary>
-    /// 获取指定组的所有放置点
-    /// </summary>
-    public List<TowerPlacementPoint> GetGroupPoints(string groupID)
-    {
-        if (groupsDict.TryGetValue(groupID, out List<TowerPlacementPoint> points))
-        {
-            return points;
-        }
-        
-        return new List<TowerPlacementPoint>();
-    }
-    
-    /// <summary>
-    /// 检查指定位置是否可以放置塔
-    /// </summary>
-    public bool CanPlaceTowerAt(Vector3Int gridPosition)
-    {
-        if (usePresetPositionsOnly)
-        {
-            // 使用预设位置，检查是否有对应的放置点且可用
-            TowerPlacementPoint point = GetPlacementPoint(gridPosition);
-            return point != null && point.isEnabled && !point.isOccupied;
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
         }
         else
         {
-            // 不使用预设位置，使用默认检查逻辑
-            TowerManager towerManager = TowerManager.Instance;
-            return towerManager != null && towerManager.CanPlaceTower(gridPosition);
+            Debug.LogWarning("发现多个TowerPlacementManager实例，正在销毁重复实例。");
+            Destroy(gameObject);
         }
     }
     
-    /// <summary>
-    /// 在指定位置放置塔
-    /// </summary>
-    public void PlaceTowerAt(Vector3Int gridPosition, BaseTower tower)
+    private void Start()
     {
-        TowerPlacementPoint point = GetPlacementPoint(gridPosition);
-        if (point != null)
-        {
-            point.OccupyPoint(tower);
-        }
+        // 初始化时查找所有已存在的放置点
+        FindAllPlacementPoints();
     }
     
-    /// <summary>
-    /// 移除指定位置的塔
-    /// </summary>
-    public void RemoveTowerAt(Vector3Int gridPosition)
+    // 查找并注册所有场景中的放置点
+    public void FindAllPlacementPoints()
     {
-        TowerPlacementPoint point = GetPlacementPoint(gridPosition);
-        if (point != null)
+        placementPoints.Clear();
+        pointsById.Clear();
+        pointsByGrid.Clear();
+        
+        // 查找场景中所有的放置点
+        TowerPlacementPoint[] points = FindObjectsOfType<TowerPlacementPoint>();
+        
+        foreach (var point in points)
         {
-            point.ReleasePoint();
+            RegisterPlacementPoint(point);
         }
+        
+        Debug.Log($"TowerPlacementManager: 找到{placementPoints.Count}个放置点");
     }
     
-    /// <summary>
-    /// 启用指定组的所有放置点
-    /// </summary>
-    public void EnableGroup(string groupID)
+    // 注册一个放置点
+    public void RegisterPlacementPoint(TowerPlacementPoint point)
     {
-        List<TowerPlacementPoint> points = GetGroupPoints(groupID);
-        foreach (TowerPlacementPoint point in points)
+        if (point == null) return;
+        
+        // 添加到列表
+        if (!placementPoints.Contains(point))
         {
-            point.EnablePoint();
-        }
-    }
-    
-    /// <summary>
-    /// 禁用指定组的所有放置点
-    /// </summary>
-    public void DisableGroup(string groupID)
-    {
-        List<TowerPlacementPoint> points = GetGroupPoints(groupID);
-        foreach (TowerPlacementPoint point in points)
-        {
-            point.DisablePoint();
-        }
-    }
-    
-    /// <summary>
-    /// 选择放置点
-    /// </summary>
-    public void SelectPoint(TowerPlacementPoint point)
-    {
-        if (selectedPoint != point)
-        {
-            // 取消之前的选择
-            if (selectedPoint != null)
+            placementPoints.Add(point);
+            
+            // 添加到字典，便于快速查找
+            if (!string.IsNullOrEmpty(point.pointID) && !pointsById.ContainsKey(point.pointID))
             {
-                // TODO: 取消之前选择点的高亮效果
+                pointsById[point.pointID] = point;
             }
             
-            selectedPoint = point;
-            
-            // 通知TowerManager选择了放置点
-            TowerManager towerManager = TowerManager.Instance;
-            if (towerManager != null)
+            // 添加到网格字典
+            if (!pointsByGrid.ContainsKey(point.gridPosition))
             {
-                towerManager.OnPlacementPointSelected(point);
+                pointsByGrid[point.gridPosition] = point;
             }
         }
     }
     
-    /// <summary>
-    /// 取消选择
-    /// </summary>
-    public void DeselectPoint()
+    // 创建一个新的放置点
+    public TowerPlacementPoint CreatePlacementPoint(Vector3 worldPos, Vector3Int gridPos, string pointID)
     {
-        if (selectedPoint != null)
-        {
-            // TODO: 取消选择点的高亮效果
-            
-            selectedPoint = null;
-            
-            // 通知TowerManager取消了选择
-            TowerManager towerManager = TowerManager.Instance;
-            if (towerManager != null)
-            {
-                towerManager.OnPlacementPointDeselected();
-            }
-        }
+        // 创建物体
+        GameObject pointObj = new GameObject($"PlacementPoint_{pointID}");
+        pointObj.transform.position = worldPos;
+        
+        // 添加TowerPlacementPoint组件
+        TowerPlacementPoint point = pointObj.AddComponent<TowerPlacementPoint>();
+        point.gridPosition = gridPos;
+        point.pointID = pointID;
+        
+        // 注册放置点
+        RegisterPlacementPoint(point);
+        
+        return point;
     }
     
-    /// <summary>
-    /// 获取最近的可用放置点
-    /// </summary>
+    // 根据ID获取放置点
+    public TowerPlacementPoint GetPlacementPointByID(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return null;
+        
+        if (pointsById.ContainsKey(id))
+        {
+            return pointsById[id];
+        }
+        
+        return null;
+    }
+    
+    // 根据网格坐标获取放置点
+    public TowerPlacementPoint GetPlacementPointByGrid(Vector3Int gridPos)
+    {
+        if (pointsByGrid.ContainsKey(gridPos))
+        {
+            return pointsByGrid[gridPos];
+        }
+        
+        return null;
+    }
+    
+    // 获取最近的可用放置点
     public TowerPlacementPoint GetNearestAvailablePoint(Vector3 worldPosition)
     {
-        // 空检查
-        if (placementPoints == null || placementPoints.Count == 0)
-        {
-            Debug.LogWarning("放置点列表为空或未初始化");
-            return null;
-        }
-        
-        TowerPlacementPoint nearestPoint = null;
+        TowerPlacementPoint nearest = null;
         float minDistance = float.MaxValue;
         
-        foreach (TowerPlacementPoint point in placementPoints)
+        foreach (var point in placementPoints)
         {
-            // 添加空检查
-            if (point == null)
-            {
-                Debug.LogWarning("放置点列表中存在空项");
-                continue;
-            }
-            
-            if (point.isEnabled && !point.isOccupied)
+            // 检查放置点是否可用
+            if (point != null && point.isEnabled && !point.isOccupied)
             {
                 float distance = Vector3.Distance(worldPosition, point.transform.position);
                 if (distance < minDistance)
                 {
                     minDistance = distance;
-                    nearestPoint = point;
+                    nearest = point;
                 }
             }
         }
         
-        return nearestPoint;
+        return nearest;
     }
     
-    /// <summary>
-    /// 高亮所有可用的放置点
-    /// </summary>
-    public void HighlightAvailablePoints(bool highlight)
+    // 检查是否可以在指定的网格位置放置塔
+    public bool CanPlaceTowerAt(Vector3Int gridPos)
     {
-        foreach (TowerPlacementPoint point in placementPoints)
+        // 检查这个位置是否有放置点
+        TowerPlacementPoint point = GetPlacementPoint(gridPos);
+        
+        // 如果没有找到放置点，不能放置
+        if (point == null)
         {
+            return false;
+        }
+        
+        // 检查放置点是否可用（启用且未被占用）
+        return point.isEnabled && !point.isOccupied;
+    }
+    
+    // 获取指定网格位置的放置点
+    public TowerPlacementPoint GetPlacementPoint(Vector3Int gridPos)
+    {
+        return GetPlacementPointByGrid(gridPos);
+    }
+    
+    // 重新初始化所有放置点 - 这个方法从ObstacleManager中调用
+    public void ReinitializePlacementPoints()
+    {
+        // 清除并重建放置点缓存
+        pointsById.Clear();
+        pointsByGrid.Clear();
+        
+        // 重新注册所有已存在的放置点
+        List<TowerPlacementPoint> existingPoints = new List<TowerPlacementPoint>(placementPoints);
+        placementPoints.Clear();
+        
+        foreach (var point in existingPoints)
+        {
+            if (point != null)
+            {
+                RegisterPlacementPoint(point);
+            }
+        }
+        
+        // 查找其他可能新增的放置点
+        FindAllPlacementPoints();
+        
+        // 如果启用了高亮，刷新高亮效果
+        if (isHighlighting)
+        {
+            HighlightAvailablePoints(true);
+        }
+        
+        Debug.Log($"TowerPlacementManager: 重新初始化了{placementPoints.Count}个放置点");
+    }
+    
+    // 高亮显示所有可用的放置点（接受启用/禁用参数）
+    public void HighlightAvailablePoints(bool enable)
+    {
+        isHighlighting = enable;
+        
+        if (!enable)
+        {
+            DisableHighlighting();
+            return;
+        }
+        
+        foreach (var point in placementPoints)
+        {
+            if (point == null) continue;
+            
+            SpriteRenderer renderer = point.GetComponent<SpriteRenderer>();
+            if (renderer == null) continue;
+            
+            // 设置颜色
             if (point.isEnabled && !point.isOccupied)
             {
-                // TODO: 实现高亮效果
-                // 可以使用粒子效果、闪烁效果等
+                // 可用点 - 绿色高亮
+                renderer.color = availableColor * highlightIntensity;
             }
+            else
+            {
+                // 不可用点 - 红色高亮
+                renderer.color = unavailableColor * highlightIntensity;
+            }
+            
+            // 确保放置点可见
+            renderer.enabled = true;
         }
     }
     
-    /// <summary>
-    /// 创建一个新的放置点
-    /// </summary>
-    public TowerPlacementPoint CreatePlacementPoint(Vector3 worldPosition, Vector3Int gridPosition, string pointID = "")
+    // 关闭高亮显示
+    public void DisableHighlighting()
     {
-        GameObject pointObj = new GameObject($"PlacementPoint_{pointID}");
-        pointObj.transform.position = worldPosition;
+        isHighlighting = false;
         
-        TowerPlacementPoint point = pointObj.AddComponent<TowerPlacementPoint>();
-        point.pointID = string.IsNullOrEmpty(pointID) ? $"Point_{placementPoints.Count}" : pointID;
-        point.gridPosition = gridPosition;
-        
-        // 添加视觉指示器
-        GameObject indicatorObj = new GameObject("PlacementIndicator");
-        indicatorObj.transform.SetParent(pointObj.transform);
-        indicatorObj.transform.localPosition = Vector3.zero;
-        
-        SpriteRenderer indicator = indicatorObj.AddComponent<SpriteRenderer>();
-        indicator.sprite = Resources.Load<Sprite>("UI/PlacementIndicator");
-        indicator.color = point.availableColor;
-        indicator.sortingOrder = -1;
-        
-        point.placementIndicator = indicator;
-        
-        // 添加到列表和字典
-        placementPoints.Add(point);
-        pointsDict[point.pointID] = point;
-        gridPointsDict[point.gridPosition] = point;
-        
-        return point;
+        foreach (var point in placementPoints)
+        {
+            if (point == null) continue;
+            
+            SpriteRenderer renderer = point.GetComponent<SpriteRenderer>();
+            if (renderer == null) continue;
+            
+            // 恢复原始颜色
+            renderer.color = Color.white;
+            
+            // 如果不需要显示放置点，可以禁用renderer
+            // renderer.enabled = false;
+        }
     }
-} 
+}

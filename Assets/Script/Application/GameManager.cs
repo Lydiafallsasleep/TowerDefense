@@ -4,331 +4,455 @@ using TMPro;
 
 public class GameManager : Singleton<GameManager>
 {
-    [Header("游戏设置")]
+    [Header("Game Settings")]
     public int maxLives = 10;
     private int currentLives;
     
-    [Header("游戏状态")]
+    [Header("Game State")]
     public bool isGameOver = false;
     public bool isPaused = false;
     
-    [Header("游戏进度")]
+    [Header("Game Progress")]
     private int currentScore = 0;
     private int currentWave = 1;
     
-    // UI引用
-    [Header("UI引用")]
+    // UI references
+    [Header("UI References")]
     public GameObject gameOverPanel;
     public GameObject pausePanel;
     
-    // 添加PlayerHealth引用
+    // Add PlayerHealth reference
     private PlayerHealth playerHealth;
     private EnemySpawner enemySpawner;
     
     void Start()
     {
-        // 初始化游戏状态
+        // Initialize game state
         currentLives = maxLives;
         isGameOver = false;
-        Time.timeScale = 1f; // 确保游戏是正常速度
+        Time.timeScale = 1f; // Ensure game is at normal speed
         
-        // 隐藏面板
+        // Hide panels
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (pausePanel != null) pausePanel.SetActive(false);
         
-        // 查找PlayerHealth组件
+        // Find PlayerHealth component
         playerHealth = FindObjectOfType<PlayerHealth>();
         
-        // 查找EnemySpawner组件
+        // Find EnemySpawner component
         enemySpawner = FindObjectOfType<EnemySpawner>();
+        
+        // Initialize particle effect system
+        InitializeParticleSystem();
+    }
+    
+    // Initialize particle effect system
+    private void InitializeParticleSystem()
+    {
+        // Check if particle effect system already exists
+        TowerParticleEffects particleEffects = FindObjectOfType<TowerParticleEffects>();
+        if (particleEffects == null)
+        {
+            // Create particle effect system
+            GameObject particleSystem = new GameObject("TowerParticleEffects");
+            particleEffects = particleSystem.AddComponent<TowerParticleEffects>();
+            DontDestroyOnLoad(particleSystem);
+            Debug.Log("Particle effect system created");
+        }
+        
+        // Check if initializer already exists
+        TowerAttackSystemInitializer initializer = FindObjectOfType<TowerAttackSystemInitializer>();
+        if (initializer == null)
+        {
+            // Create initializer
+            GameObject initObj = new GameObject("TowerAttackSystemInitializer");
+            initializer = initObj.AddComponent<TowerAttackSystemInitializer>();
+            initializer.enableParticleEffects = true;
+            initializer.particleEffectScale = 1.0f;
+            initializer.particleEffectDuration = 1.0f;
+            Debug.Log("Particle effect system initializer created");
+        }
     }
     
     void Update()
     {
-        // 处理暂停逻辑
+        // Handle pause logic
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             TogglePause();
         }
     }
     
-    // 玩家受到伤害（敌人到达终点时调用）
+    // Player takes damage (called when enemies reach the end)
     public void PlayerTakeDamage(int damage)
     {
         if (isGameOver) return;
         
-        // 如果找到了PlayerHealth组件，则通过它处理伤害
+        // If PlayerHealth component is found, handle damage through it
         if (playerHealth != null)
         {
             playerHealth.TakeDamage(damage);
-            // PlayerHealth组件会自行处理生命值和UI更新
+            // PlayerHealth component will handle lives and UI updates itself
             currentLives = playerHealth.GetCurrentLives();
         }
         else
         {
-            // 向后兼容：如果没有PlayerHealth组件，则直接处理
-            currentLives -= damage;
-            Debug.Log($"玩家受到{damage}点伤害，剩余生命：{currentLives}");
-            
-            // 检查游戏结束条件
-            if (currentLives <= 0)
-            {
-                GameOver();
+            // Backward compatibility: If no PlayerHealth component, handle directly
+        currentLives -= damage;
+        Debug.Log($"Player took {damage} damage, remaining lives: {currentLives}");
+        
+        // Check game over condition
+        if (currentLives <= 0)
+        {
+            GameOver();
             }
         }
     }
     
-    // 增加金币（击杀敌人时调用）
+    // Add gold (called when killing enemies)
     public void AddGold(int amount)
     {
         if (isGameOver) return;
-        
-        if (TowerManager.Instance != null)
+        if (CoinManager.Instance != null)
         {
-            TowerManager.Instance.AddGold(amount);
+            CoinManager.Instance.AddCoins(amount);
         }
     }
     
-    // 增加分数
+    // Add score
     public void AddScore(int points)
     {
         if (isGameOver) return;
         
         currentScore += points;
-        Debug.Log($"增加{points}分，当前分数：{currentScore}");
+        Debug.Log($"Added {points} points, current score: {currentScore}");
     }
     
-    // 设置当前波数
+    // Set current wave
     public void SetCurrentWave(int wave)
     {
         currentWave = wave;
     }
     
-    // 增加波数
+    // Increase wave
     public void IncreaseWave()
     {
         currentWave++;
-        Debug.Log($"当前波数：{currentWave}");
+        Debug.Log($"Current wave: {currentWave}");
     }
     
-    // 游戏结束
-    public void GameOver()
+    // Game over
+    public void GameOver(string reason = "")
     {
-        // 避免重复触发
+        // Avoid triggering multiple times
         if (isGameOver) return;
         
         isGameOver = true;
-        Debug.Log("游戏结束！");
+        Debug.Log($"Game Over! Reason: {(string.IsNullOrEmpty(reason) ? "Not specified" : reason)}");
         
-        // 通知EnemySpawner停止生成敌人
+        // Notify EnemySpawner to stop spawning enemies
         if (enemySpawner != null)
         {
             enemySpawner.SetGameOver(true);
         }
         
-        // 显示游戏结束面板
+        // Clear all enemies from the field
+        ClearAllEnemies();
+
+        // Show game over panel
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(true);
+
+            // Set game over reason
         }
-        else
-        {
-            Debug.LogWarning("GameOverPanel未设置！");
-        }
-        
-        // 可以选择减慢游戏速度，而不是完全暂停
-        // 完全暂停会在PlayerHealth的ShowGameOverPanel协程中处理
-        Time.timeScale = 0.3f;
     }
     
-    // 暂停/继续游戏
+    /// <summary>
+    /// Clear all enemies from the field
+    /// </summary>
+    private void ClearAllEnemies()
+    {
+        Debug.Log("[GameManager] Clearing all enemies from the field");
+        
+        // Find all enemies
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+        int enemyCount = enemies.Length;
+        
+        // Destroy or recycle all enemies
+        foreach (GameObject enemy in enemies)
+        {
+            if (enemy != null && enemy.activeSelf)
+            {
+                // If using object pool, return to object pool
+                if (ObjectPool.Instance != null)
+                {
+                    ObjectPool.Instance.OnDespawn(enemy);
+                }
+                else
+                {
+                    Destroy(enemy);
+                }
+            }
+        }
+        
+        Debug.Log($"Cleared {enemyCount} enemies");
+    }
+    
+    /// <summary>
+    /// Toggle game pause
+    /// </summary>
     public void TogglePause()
     {
-        // 如果游戏已结束，不处理暂停
-        if (isGameOver) return;
-        
         isPaused = !isPaused;
         
-        if (isPaused)
+        // Update time scale
+        Time.timeScale = isPaused ? 0f : 1f;
+        
+        // Show/hide pause panel
+        if (pausePanel != null)
         {
-            // 暂停游戏
-            Time.timeScale = 0f;
-            if (pausePanel != null) pausePanel.SetActive(true);
-            Debug.Log("游戏已暂停");
+            pausePanel.SetActive(isPaused);
         }
-        else
-        {
-            // 继续游戏
-            Time.timeScale = 1f;
-            if (pausePanel != null) pausePanel.SetActive(false);
-            Debug.Log("游戏已继续");
+        
+        Debug.Log($"Game {(isPaused ? "paused" : "resumed")}");
         }
-    }
     
-    // 重新开始游戏
+    /// <summary>
+    /// Restart the current level
+    /// </summary>
     public void RestartGame()
     {
-        // 恢复正常时间缩放
+        // Reset time scale
         Time.timeScale = 1f;
         
-        // 重新加载当前场景
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        // Reload current scene
+        Scene currentScene = SceneManager.GetActiveScene();
+        SceneManager.LoadScene(currentScene.name);
     }
     
-    // 重置游戏状态（不重新加载场景）
+    /// <summary>
+    /// Reset game state without reloading the scene
+    /// </summary>
     public void ResetGameState()
     {
-        Debug.Log("[GameManager] 重置游戏状态");
+        // Reset time scale
+        Time.timeScale = 1f;
         
-        // 重置游戏状态标志
+        // Reset game variables
         isGameOver = false;
         isPaused = false;
-        
-        // 重置分数和波数
+        currentLives = maxLives;
         currentScore = 0;
         currentWave = 1;
         
-        // 重置生命值
-        currentLives = maxLives;
+        // Hide panels
+        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        if (pausePanel != null) pausePanel.SetActive(false);
         
-        // 恢复正常时间缩放
-        Time.timeScale = 1f;
-        
-        // 隐藏游戏结束面板
-        if (gameOverPanel != null)
+        // Reset player health
+        if (playerHealth != null)
         {
-            gameOverPanel.SetActive(false);
+            playerHealth.ResetHealth();
         }
         
-        // 隐藏暂停面板
-        if (pausePanel != null)
-        {
-            pausePanel.SetActive(false);
-        }
-        
-        // 通知EnemySpawner重置状态
+        // Reset enemy spawner
         if (enemySpawner != null)
         {
-            enemySpawner.SetGameOver(false);
+            enemySpawner.ResetState();
         }
         
-        Debug.Log("[GameManager] 游戏状态已重置");
+        // Reset all towers
+        TowerManager towerManager = FindObjectOfType<TowerManager>();
+        if (towerManager != null)
+        {
+            towerManager.ResetState();
+        }
+        
+        Debug.Log("Game state reset");
     }
     
-    // 返回主菜单
+    /// <summary>
+    /// Return to main menu
+    /// </summary>
     public void ReturnToMainMenu()
     {
-        // 恢复正常时间缩放
+        // Reset time scale
         Time.timeScale = 1f;
         
-        // 假设主菜单是场景索引0
-        SceneManager.LoadScene(0);
+        // Load main menu scene
+        SceneManager.LoadScene("MainMenu");
     }
     
-    // 退出游戏
+    /// <summary>
+    /// Quit the game
+    /// </summary>
     public void QuitGame()
     {
-        Debug.Log("退出游戏");
+        Debug.Log("Quitting game");
         
-        #if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-        #else
+        // Save any data if needed
+        if (CoinManager.Instance != null)
+        {
+            // Save coins or other progress data
+        }
+        
+        // Quit application
         Application.Quit();
-        #endif
     }
     
-    // 获取当前生命值
+    /// <summary>
+    /// Get current lives
+    /// </summary>
     public int GetCurrentLives()
     {
-        // 如果存在PlayerHealth组件，则从它获取生命值
+        // If PlayerHealth exists, get lives from it
         if (playerHealth != null)
         {
             return playerHealth.GetCurrentLives();
         }
+        
+        // Otherwise return internal value
         return currentLives;
     }
     
-    // 获取当前分数
+    /// <summary>
+    /// Get current score
+    /// </summary>
     public int GetScore()
     {
         return currentScore;
     }
     
-    // 获取当前波数
+    /// <summary>
+    /// Get current wave
+    /// </summary>
     public int GetCurrentWave()
     {
         return currentWave;
     }
     
     /// <summary>
-    /// 游戏胜利处理
+    /// Victory condition met
     /// </summary>
     public void Victory()
     {
+        // Avoid triggering if already game over
         if (isGameOver) return;
         
-        Debug.Log("[GameManager] 游戏胜利！");
+        Debug.Log("Victory!");
         
-        // 设置游戏状态
+        // Set game over but with victory reason
         isGameOver = true;
         
-        // 通知EnemySpawner停止生成敌人
+        // Notify EnemySpawner to stop spawning
         if (enemySpawner != null)
         {
             enemySpawner.SetGameOver(true);
         }
         
-        // 通知WaveManager游戏结束
-        WaveManager waveManager = FindObjectOfType<WaveManager>();
-        if (waveManager != null)
-        {
-            waveManager.SetGameOver(true);
-        }
-        
-        // 显示胜利UI（如果有）
+        // Show victory UI
         GameObject victoryPanel = GameObject.Find("VictoryPanel");
         if (victoryPanel != null)
         {
             victoryPanel.SetActive(true);
+            
+            // Try to get WinPanel component
+            WinPanel winPanel = victoryPanel.GetComponent<WinPanel>();
+            if (winPanel != null)
+            {
+                // Update UI with final score and stats
+                winPanel.SetStats(currentScore, currentWave);
+            }
         }
         else
         {
-            // 如果没有专门的胜利面板，可以使用游戏结束面板
+            // If no victory panel, show game over with victory message
             if (gameOverPanel != null)
             {
                 gameOverPanel.SetActive(true);
                 
-                // 尝试修改游戏结束面板上的文本
-                TextMeshProUGUI[] texts = gameOverPanel.GetComponentsInChildren<TextMeshProUGUI>();
-                foreach (var text in texts)
-                {
-                    if (text.name.Contains("Title") || text.name.Contains("Header"))
-                    {
-                        text.text = "胜利！";
-                        break;
-                    }
-                }
+               
             }
         }
         
-        // 应用慢动作效果（可选）
+        // Save progress
+        SaveGameProgress();
+        
+        // Slow down time slightly for dramatic effect
         Time.timeScale = 0.5f;
-        
-        // 播放胜利音效（如果有）
-        AudioSource audioSource = GetComponent<AudioSource>();
-        if (audioSource != null)
-        {
-            AudioClip victorySound = Resources.Load<AudioClip>("Sounds/Victory");
-            if (victorySound != null)
+    }
+    
+    // Save game progress
+    private void SaveGameProgress()
+    {
+        // Save highest wave reached
+        int highestWave = PlayerPrefs.GetInt("HighestWave", 0);
+        if (currentWave > highestWave)
             {
-                audioSource.PlayOneShot(victorySound);
-            }
+            PlayerPrefs.SetInt("HighestWave", currentWave);
         }
         
-        // 给予额外奖励
-        int victoryBonus = currentScore / 2; // 额外奖励为当前分数的一半
-        currentScore += victoryBonus;
+        // Save highest score
+        int highestScore = PlayerPrefs.GetInt("HighestScore", 0);
+        if (currentScore > highestScore)
+        {
+            PlayerPrefs.SetInt("HighestScore", currentScore);
+        }
         
-        Debug.Log($"[GameManager] 胜利奖励: {victoryBonus}分，总分: {currentScore}");
+        // Save data
+        PlayerPrefs.Save();
+        
+        Debug.Log($"Game progress saved. Highest wave: {Mathf.Max(highestWave, currentWave)}, Highest score: {Mathf.Max(highestScore, currentScore)}");
+    }
+    
+    /// <summary>
+    /// Check if victory conditions are met
+    /// </summary>
+    public void CheckVictoryCondition()
+    {
+        // Get reference to WaveManager
+        WaveManager waveManager = FindObjectOfType<WaveManager>();
+        
+        // If no WaveManager or already game over, return
+        if (waveManager == null || isGameOver)
+            return;
+        
+        // Check if all waves are completed and no enemies are left
+        if (waveManager.AreAllWavesCompleted())
+        {
+            // Count remaining enemies
+            GameObject[] remainingEnemies = GameObject.FindGameObjectsWithTag("Enemy");
+        
+            // If no enemies left, trigger victory
+            if (remainingEnemies.Length == 0)
+        {
+                Victory();
+            }
+        }
+    }
+    
+    // Scene transition methods and other game functions can be added here
+    public string mainMenuSceneName = "MainMenu";
+    public string creditsSceneName = "Credits";
+            
+    // Method to load a specific level
+    public void LoadLevel(int levelNumber)
+            {
+        // Reset time scale
+        Time.timeScale = 1f;
+        
+        // Load the level scene
+        string levelSceneName = "Level" + levelNumber;
+        
+        // Check if scene exists in build settings
+        if (Application.CanStreamedLevelBeLoaded(levelSceneName))
+        {
+            SceneManager.LoadScene(levelSceneName);
+                }
+                else
+                {
+            Debug.LogError($"Scene {levelSceneName} not found in build settings!");
+        }
     }
 } 

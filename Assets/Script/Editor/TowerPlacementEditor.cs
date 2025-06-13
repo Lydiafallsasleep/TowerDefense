@@ -11,6 +11,8 @@ public class TowerPlacementEditor : Editor
     private bool showPlacementPoints = true;
     private Vector3 newPointPosition = Vector3.zero;
     private string newPointGroup = "";
+    private enum PlacementPointType { Normal, Obstacle }
+    private PlacementPointType newPointType = PlacementPointType.Normal;
     
     public override void OnInspectorGUI()
     {
@@ -26,18 +28,20 @@ public class TowerPlacementEditor : Editor
         // 在场景中创建放置点
         EditorGUILayout.LabelField("创建新放置点", EditorStyles.boldLabel);
         
+        // 放置点类型
+        newPointType = (PlacementPointType)EditorGUILayout.EnumPopup("放置点类型", newPointType);
+        
         newPointPosition = EditorGUILayout.Vector3Field("位置", newPointPosition);
         newPointGroup = EditorGUILayout.TextField("组ID", newPointGroup);
         
         if (GUILayout.Button("在当前位置创建放置点"))
         {
             // 创建一个新的放置点
-            CreatePlacementPoint(manager, newPointPosition, newPointGroup);
+            CreatePlacementPoint(manager, newPointPosition, newPointGroup, newPointType);
         }
         
         if (GUILayout.Button("在场景视图选择位置创建放置点"))
         {
-            // 创建一个新的工具，用于在场景视图中选择位置
             SceneView.duringSceneGui += OnSceneGUI;
             EditorUtility.DisplayDialog("创建放置点", "请在场景视图中点击鼠标左键选择位置，然后按回车确认或ESC取消", "确定");
         }
@@ -118,6 +122,16 @@ public class TowerPlacementEditor : Editor
             float height = EditorGUILayout.FloatField("高度", 0);
             AdjustAllPointsHeight(manager, height);
         }
+        
+        if (GUILayout.Button("将选中对象添加到放置点列表"))
+        {
+            AddSelectedPlacementPoints(manager);
+        }
+        
+        if (GUILayout.Button("自动收集场景中的放置点"))
+        {
+            AutoCollectPlacementPoints(manager);
+        }
     }
     
     // 在场景视图中选择位置
@@ -164,11 +178,8 @@ public class TowerPlacementEditor : Editor
         // 如果是回车键
         else if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Return)
         {
-            // 创建放置点
             TowerPlacementManager manager = (TowerPlacementManager)target;
-            CreatePlacementPoint(manager, newPointPosition, newPointGroup);
-            
-            // 移除事件处理器
+            CreatePlacementPoint(manager, newPointPosition, newPointGroup, newPointType);
             SceneView.duringSceneGui -= OnSceneGUI;
             e.Use();
         }
@@ -181,8 +192,8 @@ public class TowerPlacementEditor : Editor
         }
     }
     
-    // 创建放置点
-    private void CreatePlacementPoint(TowerPlacementManager manager, Vector3 position, string groupID)
+    // 创建放置点 (重载，带类型)
+    private void CreatePlacementPoint(TowerPlacementManager manager, Vector3 position, string groupID, PlacementPointType pointType)
     {
         // 计算网格位置
         Vector3Int gridPosition = new Vector3Int(
@@ -191,21 +202,108 @@ public class TowerPlacementEditor : Editor
             Mathf.RoundToInt(position.z)
         );
         
-        // 创建放置点
         string pointID = $"PlacementPoint_{manager.placementPoints.Count}";
-        TowerPlacementPoint point = manager.CreatePlacementPoint(position, gridPosition, pointID);
+        TowerPlacementPoint point = null;
         
-        // 设置组ID
+        if (pointType == PlacementPointType.Normal)
+        {
+            // 使用管理器自带的方法
+            point = manager.CreatePlacementPoint(position, gridPosition, pointID);
+        }
+        else // Obstacle 类型
+        {
+            point = CreateObstaclePlacementPoint(manager, position, gridPosition, pointID);
+        }
+        
         if (!string.IsNullOrEmpty(groupID))
         {
             point.placementGroupID = groupID;
         }
         
-        // 设置为已修改
+        EditorUtility.SetDirty(manager);
+        Selection.activeGameObject = point.gameObject;
+    }
+    
+    // 创建与障碍物关联的放置点
+    private TowerPlacementPoint CreateObstaclePlacementPoint(TowerPlacementManager manager, Vector3 position, Vector3Int gridPosition, string pointID)
+    {
+        GameObject pointObj = new GameObject(pointID);
+        pointObj.transform.position = position;
+        
+        ObstaclePlacementPoint point = pointObj.AddComponent<ObstaclePlacementPoint>();
+        point.pointID = pointID;
+        point.gridPosition = gridPosition;
+        
+        // 创建视觉指示器（与管理器默认方法保持一致）
+        GameObject indicatorObj = new GameObject("PlacementIndicator");
+        indicatorObj.transform.SetParent(pointObj.transform);
+        indicatorObj.transform.localPosition = Vector3.zero;
+        
+        SpriteRenderer indicator = indicatorObj.AddComponent<SpriteRenderer>();
+        indicator.sprite = Resources.Load<Sprite>("UI/PlacementIndicator");
+        indicator.color = point.availableColor;
+        indicator.sortingOrder = -1;
+        point.placementIndicator = indicator;
+        
+        // 加入到管理器列表
+        manager.placementPoints.Add(point);
+        return point;
+    }
+    
+    // 选中对象添加到放置点列表
+    private void AddSelectedPlacementPoints(TowerPlacementManager manager)
+    {
+        foreach (GameObject obj in Selection.gameObjects)
+        {
+            TowerPlacementPoint p = obj.GetComponent<TowerPlacementPoint>();
+            if (p != null && !manager.placementPoints.Contains(p))
+            {
+                manager.placementPoints.Add(p);
+                EditorUtility.SetDirty(p);
+            }
+        }
+        EditorUtility.SetDirty(manager);
+        Repaint();
+    }
+    
+    // 自动扫描场景中所有放置点并同步
+    private void AutoCollectPlacementPoints(TowerPlacementManager manager)
+    {
+        // 查找所有基础放置点和障碍物放置点
+        TowerPlacementPoint[] basicPointsInScene = FindObjectsOfType<TowerPlacementPoint>();
+        ObstaclePlacementPoint[] obstaclePointsInScene = FindObjectsOfType<ObstaclePlacementPoint>();
+        
+        // 创建新列表以避免重复
+        List<TowerPlacementPoint> allPoints = new List<TowerPlacementPoint>();
+        
+        // 添加基础放置点（排除障碍物放置点，因为它们会在下一步添加）
+        foreach (TowerPlacementPoint point in basicPointsInScene)
+        {
+            if (!(point is ObstaclePlacementPoint) && !allPoints.Contains(point))
+            {
+                allPoints.Add(point);
+            }
+        }
+        
+        // 添加障碍物放置点
+        foreach (ObstaclePlacementPoint point in obstaclePointsInScene)
+        {
+            if (!allPoints.Contains(point))
+            {
+                allPoints.Add(point);
+            }
+        }
+        
+        // 更新管理器的放置点列表
+        manager.placementPoints = allPoints;
+        
+        // 标记为已修改
         EditorUtility.SetDirty(manager);
         
-        // 选择新创建的放置点
-        Selection.activeGameObject = point.gameObject;
+        // 刷新Inspector
+        Repaint();
+        
+        Debug.Log($"已收集 {allPoints.Count} 个放置点（包括 {obstaclePointsInScene.Length} 个障碍物放置点）");
     }
     
     // 启用/禁用所有放置点
